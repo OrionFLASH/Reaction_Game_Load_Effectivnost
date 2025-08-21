@@ -22,7 +22,7 @@ import traceback
 # =============================================================================
 
 # Путь к рабочей папке (сырая строка для избежания экранирования)
-WORK_DIR = r"./WORK"
+WORK_DIR = r"/Users/orionflash/Desktop/MyProject/Reaction_Effectiv_LOAD/WORK"
 
 # Названия подпапок
 INPUT_FOLDER = "INPUT"      # Папка с входными файлами
@@ -54,16 +54,16 @@ LOG_FILE = {
 PROGRAM_MODE = "create-test"
 
 # Уровень логирования (INFO или DEBUG)
-LOG_LEVEL = "INFO"
+LOG_LEVEL = "DEBUG"
 
 # Параметры генерации тестовых данных
 DATA_PARAMS = {
     "total_employees": 1600,        # Общее количество сотрудников
     "effective_share": 0.80,        # Доля эффективных сотрудников (80%)
-    "operational_income_july_min": 50000,    # Минимальный операционный доход на 31 июля 2025 (тыс. руб.)
-    "operational_income_july_max": 200000,   # Максимальный операционный доход на 31 июля 2025 (тыс. руб.)
-    "operational_income_august_min": 50000,  # Минимальный операционный доход на 20 августа 2025 (тыс. руб.)
-    "operational_income_august_max": 220000, # Максимальный операционный доход на 20 августа 2025 (тыс. руб.)
+    "operational_income_july_min": 500000,    # Минимальный операционный доход на 31 июля 2025 (тыс. руб.)
+    "operational_income_july_max": 20000000,   # Максимальный операционный доход на 31 июля 2025 (тыс. руб.)
+    "operational_income_august_min": 500000,  # Минимальный операционный доход на 20 августа 2025 (тыс. руб.)
+    "operational_income_august_max": 220000000, # Максимальный операционный доход на 20 августа 2025 (тыс. руб.)
     "employee_overlap": 0.90,       # Доля одинаковых сотрудников в двух файлах (90%)
     "new_employees_share": 0.05,    # Доля новых сотрудников (5%)
     "removed_employees_share": 0.05 # Доля убранных сотрудников (5%)
@@ -493,7 +493,8 @@ class TestDataGenerator:
         # Операционный доход на 31 июля 2025
         income_july = np.random.randint(DATA_PARAMS["operational_income_july_min"], DATA_PARAMS["operational_income_july_max"] + 1)
         
-        # Операционный доход на 20 августа 2025 (обычно больше или равен июльскому)
+        # Операционный доход на 20 августа 2025 (обязательно >= июльского)
+        # Минимальный доход = доход на 31 июля, максимальный = заданный максимум
         income_august = np.random.randint(income_july, DATA_PARAMS["operational_income_august_max"] + 1)
         
         # Прирост в процентах
@@ -542,7 +543,14 @@ class TestDataGenerator:
                 # Генерируем остальные данные для 31 июля 2025 года
                 tn = self._generate_tn()
                 effective_status = self._generate_effective_status()
-                income_data_july = self._generate_operational_income_data()
+                
+                # Генерируем базовый доход (как бы на начало периода) и доход на 31 июля
+                base_income = np.random.randint(DATA_PARAMS["operational_income_july_min"] - 10000, DATA_PARAMS["operational_income_july_min"])
+                income_july = np.random.randint(DATA_PARAMS["operational_income_july_min"], DATA_PARAMS["operational_income_july_max"] + 1)
+                
+                # Вычисляем прирост от базового дохода до 31 июля
+                growth_percent_july = ((income_july - base_income) / base_income * 100) if base_income > 0 else 0
+                growth_amount_july = income_july - base_income
                 
                 # Создаем строку данных для 31 июля 2025 года
                 row_july = {
@@ -553,7 +561,11 @@ class TestDataGenerator:
                     'ГОСБ': gosb,
                     'КМ': fio,
                     'Эффективный КМ': effective_status,
-                    '2025, тыс. руб.': income_data_july['operational_income_july']
+                    '2025, тыс. руб.': income_july,
+                    '2024, тыс. руб. на конец месяца': base_income,
+                    'Прирост, %': round(growth_percent_july, 2),
+                    'Прирост, тыс. руб.': growth_amount_july,
+                    'ОД конец квартала, тыс. руб.': income_july
                 }
                 
                 data1.append(row_july)
@@ -563,7 +575,7 @@ class TestDataGenerator:
                     'tb': tb,
                     'gosb': gosb,
                     'effective_status': effective_status,
-                    'income_july': income_data_july['operational_income_july']
+                    'income_july': income_july
                 })
                 
                 # Логируем прогресс каждые 100 сотрудников
@@ -582,6 +594,7 @@ class TestDataGenerator:
             # Создаем данные для оставшихся сотрудников
             for emp in remaining_employees:
                 # Генерируем доход на 20 августа (>= дохода на 31 июля)
+                # Минимальный доход = доход на 31 июля, максимальный = заданный максимум
                 income_august = np.random.randint(emp['income_july'], DATA_PARAMS["operational_income_august_max"] + 1)
                 
                 # Вычисляем прирост
