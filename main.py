@@ -247,10 +247,10 @@ LOG_MESSAGES = {
     "no_data_to_process": "Нет данных для обработки",
     "no_data_to_save": "Нет данных для сохранения",
     "data_processed": "Обработано данных: {} строк",
+    "rows_columns_loaded": "Загружено {} строк и {} столбцов из файла {}",
     "duplicates_removed": "Удалено дубликатов: {}",
     "missing_values_filled": "Заполнено пропущенных значений: {}",
     "processing_error": "Ошибка при обработке данных: {}",
-    "rows_columns_loaded": "Загружено {} строк и {} столбцов из {}",
     "critical_error": "Критическая ошибка в процессе выполнения: {}",
     "mode_create_test": "Режим: Создание тестовых данных",
     "mode_process": "Режим: Обработка данных",
@@ -856,7 +856,7 @@ class DataProcessor:
     
     def process_data(self, dataframes):
         """
-        Обработка загруженных данных
+        Обработка загруженных данных с объединением и расчетом новых колонок
         
         Args:
             dataframes (list): Список загруженных DataFrame'ов
@@ -871,28 +871,115 @@ class DataProcessor:
             return pd.DataFrame()
         
         try:
-            # Объединяем все DataFrame'ы
-            combined_df = pd.concat([df['data'] for df in dataframes], ignore_index=True)
+            # Находим файлы data1 и data2
+            df1 = None
+            df2 = None
             
-            # Удаляем дубликаты
-            initial_rows = len(combined_df)
-            combined_df = combined_df.drop_duplicates()
-            duplicates_removed = initial_rows - len(combined_df)
+            for df_info in dataframes:
+                if df_info['name'] == 'data1':
+                    df1 = df_info['data']
+                elif df_info['name'] == 'data2':
+                    df2 = df_info['data']
             
-            # Обработка пропущенных значений
-            missing_values = combined_df.isnull().sum().sum()
-            combined_df = combined_df.fillna("N/A")
+            if df1 is None or df2 is None:
+                self.logger.log_error("Не найдены файлы data1.xlsx или data2.xlsx")
+                return pd.DataFrame()
             
-            # Сортировка по первому столбцу
-            if len(combined_df.columns) > 0:
-                combined_df = combined_df.sort_values(by=combined_df.columns[0])
+            self.logger.log_debug(f"Загружены файлы: data1 ({len(df1)} строк), data2 ({len(df2)} строк)")
             
-            self.logger.log_debug(LOG_MESSAGES["data_processed"].format(len(combined_df)))
-            self.logger.log_debug(LOG_MESSAGES["duplicates_removed"].format(duplicates_removed))
-            self.logger.log_debug(LOG_MESSAGES["missing_values_filled"].format(missing_values))
+            # Создаем список уникальных значений ТН 10, ТБ, ГОСБ, ФИО
+            # Объединяем все уникальные ТН из обоих файлов
+            all_tn = pd.concat([
+                df1[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates(),
+                df2[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates()
+            ]).drop_duplicates(subset=['ТН 10'], keep='last')
             
+            self.logger.log_debug(f"Создан список из {len(all_tn)} уникальных ТН")
+            
+            # Создаем результирующий DataFrame
+            result_data = []
+            
+            for _, row in all_tn.iterrows():
+                tn = row['ТН 10']
+                tb = row['ТБ']
+                gosb = row['ГОСБ']
+                fio = row['КМ']
+                
+                # Ищем данные в файле 1
+                data1_row = df1[df1['ТН 10'] == tn]
+                data2_row = df2[df2['ТН 10'] == tn]
+                
+                # Получаем значения из файла 1
+                od_current = data1_row['2025, тыс. руб.'].iloc[0] if len(data1_row) > 0 else 0
+                od_previous = data1_row['2024, тыс. руб. на конец месяца'].iloc[0] if len(data1_row) > 0 else 0
+                
+                # Получаем эффективность из файла 2, если нет - из файла 1
+                if len(data2_row) > 0:
+                    effectiveness = data2_row['Эффективный КМ'].iloc[0]
+                elif len(data1_row) > 0:
+                    effectiveness = data1_row['Эффективный КМ'].iloc[0]
+                else:
+                    effectiveness = "👎"
+                
+                # Конвертируем эффективность в числовое значение
+                effectiveness_num = 1 if effectiveness == "👍" else 0
+                
+                # Рассчитываем темп ОД
+                if od_previous == 0:
+                    if od_current > 0:
+                        temp_od = 100
+                    elif od_current < 0:
+                        temp_od = -100
+                    else:
+                        temp_od = 0
+                else:
+                    temp_od = (od_current - od_previous) / abs(od_previous) * 100
+                
+                # Создаем строку результата
+                result_row = {
+                    'ТН 10': tn,
+                    'ТБ': tb,
+                    'ГОСБ': gosb,
+                    'ФИО': fio,
+                    'ИНД (ТБ_ГОСБ_ТН)': f"{tb}_{gosb}_{tn}",
+                    'ИНД (ТБ_ГОСБ_ФИО)': f"{tb}_{gosb}_{fio}",
+                    'ИНД (ТБ_ГОСБ)': f"{tb}_{gosb}",
+                    'ОД ТЕКУЩИЙ': od_current,
+                    'ОД ПРОШЛЫЙ': od_previous,
+                    'ЭФФЕКТИВНОСТЬ': effectiveness_num,
+                    'ТЕМП ОД': round(temp_od, 2)
+                }
+                
+                result_data.append(result_row)
+            
+            # Создаем DataFrame
+            result_df = pd.DataFrame(result_data)
+            
+            # Рассчитываем ранги ОД
+            self.logger.log_debug("Рассчитываем ранги ОД...")
+            
+            # РАНГ ОД ДЛЯ УРОВНЯ BANK (по всем данным)
+            result_df['РАНГ ОД ДЛЯ УРОВНЯ BANK'] = result_df['ОД ТЕКУЩИЙ'].rank(method='min', ascending=False)
+            
+            # РАНГ ОД ДЛЯ УРОВНЯ TB (по каждому ТБ отдельно)
+            result_df['РАНГ ОД ДЛЯ УРОВНЯ TB'] = result_df.groupby('ТБ')['ОД ТЕКУЩИЙ'].rank(method='min', ascending=False)
+            
+            # Конвертируем ранги в проценты
+            total_count = len(result_df)
+            result_df['РАНГ ОД ДЛЯ УРОВНЯ BANK'] = (result_df['РАНГ ОД ДЛЯ УРОВНЯ BANK'] / total_count * 100).round(2)
+            
+            # Конвертируем ранги ТБ в проценты для каждого ТБ
+            for tb in result_df['ТБ'].unique():
+                tb_mask = result_df['ТБ'] == tb
+                tb_count = tb_mask.sum()
+                result_df.loc[tb_mask, 'РАНГ ОД ДЛЯ УРОВНЯ TB'] = (
+                    result_df.loc[tb_mask, 'РАНГ ОД ДЛЯ УРОВНЯ TB'] / tb_count * 100
+                ).round(2)
+            
+            self.logger.log_debug(f"Обработано данных: {len(result_df)} строк, {len(result_df.columns)} колонок")
             self.logger.log_info(LOG_MESSAGES["processing_end"])
-            return combined_df
+            
+            return result_df
             
         except Exception as e:
             error_msg = LOG_MESSAGES["processing_error"].format(str(e))
