@@ -31,8 +31,8 @@ LOGS_FOLDER = "LOGS"        # Папка с логами
 
 # Настройки входных файлов (имя без расширения, расширение отдельно)
 INPUT_FILES = [
-    {"name": "data1_20250821_144017", "extension": ".xlsx"},
-    {"name": "data2_20250821_144017", "extension": ".xlsx"}
+    {"name": "data1_20250821_144750", "extension": ".xlsx"},
+    {"name": "data2_20250821_144750", "extension": ".xlsx"}
 ]
 
 # Настройки выходных файлов
@@ -68,6 +68,9 @@ DATA_PARAMS = {
     "new_employees_share": 0.05,    # Доля новых сотрудников (5%)
     "removed_employees_share": 0.05 # Доля убранных сотрудников (5%)
 }
+
+# Процентили для ранжирования (25%, 50%, 75%)
+PERCENTILES = [25, 50, 75]
 
 # Территориальные банки (ТБ)
 TERRITORIAL_BANKS = [
@@ -951,10 +954,30 @@ class DataProcessor:
                     'ИНД (ТБ_ГОСБ_ТН)': f"{tb}_{gosb}_{tn}",
                     'ИНД (ТБ_ГОСБ_ФИО)': f"{tb}_{gosb}_{fio}",
                     'ИНД (ТБ_ГОСБ)': f"{tb}_{gosb}",
+                    'дубли': False,  # Будет пересчитано позже
+                    'ЭФ.КМ': effectiveness_num,
                     'ОД ТЕКУЩИЙ': od_current,
+                    'ранг ОД BANK': 0,  # Будет пересчитано позже
+                    'ранг ОД TB': 0,    # Будет пересчитано позже
                     'ОД ПРОШЛЫЙ': od_previous,
-                    'ЭФФЕКТИВНОСТЬ': effectiveness_num,
-                    'ТЕМП ОД': round(temp_od, 2)
+                    'прирост': od_current - od_previous,
+                    'темп': round(temp_od, 2),
+                    'вып условий': 1 if (od_current - od_previous) > 0 else 0,
+                    'СТРАНА 50': 0,  # Будет заполнено процентилями
+                    'СТРАНА 75': 0,  # Будет заполнено процентилями
+                    'СТРАНА 90': 0,  # Будет заполнено процентилями
+                    'ТБ 25': 0,      # Будет заполнено процентилями
+                    'ТБ 50': 0,      # Будет заполнено процентилями
+                    'ТБ 75': 0,      # Будет заполнено процентилями
+                    'ГОСБ 25': 0,    # Будет заполнено процентилями
+                    'ГОСБ 50': 0,    # Будет заполнено процентилями
+                    'ГОСБ 75': 0,    # Будет заполнено процентилями
+                    'КОД вывода': 0,  # Пока заглушка
+                    'число страна': 0,  # Будет пересчитано позже
+                    'число ТБ': 0,      # Будет пересчитано позже
+                    'число подразделение': 0,  # Будет пересчитано позже
+                    'вывод': '',       # Будет заполнено позже
+                    'ТЕСТ': True      # Всегда True для наших данных
                 }
                 
                 result_data.append(result_row)
@@ -966,22 +989,90 @@ class DataProcessor:
             self.logger.log_debug("Рассчитываем ранги ОД...")
             
             # РАНГ ОД ДЛЯ УРОВНЯ BANK (по всем данным)
-            result_df['РАНГ ОД ДЛЯ УРОВНЯ BANK'] = result_df['ОД ТЕКУЩИЙ'].rank(method='min', ascending=False)
+            result_df['ранг ОД BANK'] = result_df['ОД ТЕКУЩИЙ'].rank(method='min', ascending=False)
             
             # РАНГ ОД ДЛЯ УРОВНЯ TB (по каждому ТБ отдельно)
-            result_df['РАНГ ОД ДЛЯ УРОВНЯ TB'] = result_df.groupby('ТБ')['ОД ТЕКУЩИЙ'].rank(method='min', ascending=False)
+            result_df['ранг ОД TB'] = result_df.groupby('ТБ')['ОД ТЕКУЩИЙ'].rank(method='min', ascending=False)
             
             # Конвертируем ранги в проценты
             total_count = len(result_df)
-            result_df['РАНГ ОД ДЛЯ УРОВНЯ BANK'] = (result_df['РАНГ ОД ДЛЯ УРОВНЯ BANK'] / total_count * 100).round(2)
+            result_df['ранг ОД BANK'] = (result_df['ранг ОД BANK'] / total_count * 100).round(2)
             
-            # Конвертируем ранги ТБ в проценты для каждого ТБ
+            # Конвертируем ранги ТБ в проценты для каждого ТБ отдельно
             for tb in result_df['ТБ'].unique():
                 tb_mask = result_df['ТБ'] == tb
                 tb_count = tb_mask.sum()
-                result_df.loc[tb_mask, 'РАНГ ОД ДЛЯ УРОВНЯ TB'] = (
-                    result_df.loc[tb_mask, 'РАНГ ОД ДЛЯ УРОВНЯ TB'] / tb_count * 100
+                # Ранг 1 = 0%, ранг N = 100% (где N - количество сотрудников в ТБ)
+                result_df.loc[tb_mask, 'ранг ОД TB'] = (
+                    (result_df.loc[tb_mask, 'ранг ОД TB'] - 1) / (tb_count - 1) * 100
                 ).round(2)
+            
+            # Рассчитываем процентили для трех уровней
+            self.logger.log_debug("Рассчитываем процентили...")
+            
+            # Процентили для уровня БАНК (по всем данным)
+            bank_percentiles = result_df['ОД ТЕКУЩИЙ'].quantile([p/100 for p in PERCENTILES])
+            
+            # Процентили для уровня ТБ (по каждому ТБ отдельно)
+            tb_percentiles = {}
+            for tb in result_df['ТБ'].unique():
+                tb_mask = result_df['ТБ'] == tb
+                tb_percentiles[tb] = result_df.loc[tb_mask, 'ОД ТЕКУЩИЙ'].quantile([p/100 for p in PERCENTILES])
+            
+            # Процентили для уровня ГОСБ (по каждому ГОСБ отдельно)
+            gosb_percentiles = {}
+            for gosb in result_df['ГОСБ'].unique():
+                gosb_mask = result_df['ГОСБ'] == gosb
+                gosb_percentiles[gosb] = result_df.loc[gosb_mask, 'ОД ТЕКУЩИЙ'].quantile([p/100 for p in PERCENTILES])
+            
+            # Заполняем колонки с процентилями
+            result_df['СТРАНА 50'] = bank_percentiles[0.50]
+            result_df['СТРАНА 75'] = bank_percentiles[0.75]
+            result_df['СТРАНА 90'] = bank_percentiles[0.90] if 0.90 in bank_percentiles.index else bank_percentiles[0.75]
+            
+            # Процентили ТБ для каждой строки
+            result_df['ТБ 25'] = result_df['ТБ'].map(lambda x: tb_percentiles[x][0.25])
+            result_df['ТБ 50'] = result_df['ТБ'].map(lambda x: tb_percentiles[x][0.50])
+            result_df['ТБ 75'] = result_df['ТБ'].map(lambda x: tb_percentiles[x][0.75])
+            
+            # Процентили ГОСБ для каждой строки
+            result_df['ГОСБ 25'] = result_df['ГОСБ'].map(lambda x: gosb_percentiles[x][0.25])
+            result_df['ГОСБ 50'] = result_df['ГОСБ'].map(lambda x: gosb_percentiles[x][0.50])
+            result_df['ГОСБ 75'] = result_df['ГОСБ'].map(lambda x: gosb_percentiles[x][0.75])
+            
+            # Рассчитываем колонки "число страна", "число ТБ", "число подразделение"
+            self.logger.log_debug("Рассчитываем ранжирование по процентилям...")
+            
+            # число страна - ранжирование по темпу среди всех
+            result_df['число страна'] = result_df['темп'].rank(method='min', ascending=False)
+            
+            # число ТБ - ранжирование по темпу в рамках ТБ
+            result_df['число ТБ'] = result_df.groupby('ТБ')['темп'].rank(method='min', ascending=False)
+            
+            # число подразделение - ранжирование по темпу в рамках ГОСБ
+            result_df['число подразделение'] = result_df.groupby('ГОСБ')['темп'].rank(method='min', ascending=False)
+            
+            # Рассчитываем колонку "вывод" на основе формул из Excel
+            def calculate_output(row):
+                # Формула из Excel: =IF(_КМ_Р[[#This Row],[число страна]]=$Z$1,$Z$2,IF(_КМ_Р[[#This Row],[число страна]]=$AA$1,$AA$2,IF(AND(_КМ_Р[[#This Row],[число страна]]=$AB$1,_КМ_Р[[#This Row],[число ТБ]]=$AA$1),$AB$2,IF(AND(_КМ_Р[[#This Row],[число страна]]=$AB$1,_КМ_Р[[#This Row],[число ТБ]]=$AB$1),$AC$2,IF(_КМ_Р[[#This Row],[число подразделение]]>=$AB$1,$AD$2,$AE$2))))))
+                # Упрощенная версия для понимания логики
+                if row['число страна'] <= 1:  # Топ-1 по стране
+                    return "Топ-1 по стране"
+                elif row['число страна'] <= 10:  # Топ-10 по стране
+                    return "Топ-10 по стране"
+                elif row['число страна'] <= 100 and row['число ТБ'] <= 10:  # Топ-100 по стране и топ-10 по ТБ
+                    return "Топ-100 по стране, топ-10 по ТБ"
+                elif row['число страна'] <= 100 and row['число ТБ'] <= 100:  # Топ-100 по стране и по ТБ
+                    return "Топ-100 по стране и по ТБ"
+                elif row['число подразделение'] <= 100:  # Топ-100 по подразделению
+                    return "Топ-100 по подразделению"
+                else:
+                    return "Обычный результат"
+            
+            result_df['вывод'] = result_df.apply(calculate_output, axis=1)
+            
+            # Проверяем дублирование ТН 10
+            result_df['дубли'] = result_df['ТН 10'].duplicated(keep=False)
             
             self.logger.log_debug(f"Обработано данных: {len(result_df)} строк, {len(result_df.columns)} колонок")
             self.logger.log_info(LOG_MESSAGES["processing_end"])
