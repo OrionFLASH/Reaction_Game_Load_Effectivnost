@@ -221,7 +221,7 @@ LOG_MESSAGES = {
     "file_saved": "Файл {} сохранен успешно",
     "error": "Ошибка: {}",
     "summary": "Сводка выполнения: {}",
-    "time_elapsed": "Время выполнения: {:.2f} секунд",
+    "time_elapsed": "Время выполнения: {}",
     "files_processed": "Обработано файлов: {}",
     "outputs_created": "Создано выходных файлов: {}",
     "errors_count": "Количество ошибок: {}",
@@ -270,8 +270,54 @@ LOG_MESSAGES = {
     "new_employees_info": "Новых сотрудников: {} ({:.1f}%)",
     "removed_employees_info": "Убранных сотрудников: {} ({:.1f}%)",
     "unique_tn_fio_file1": "Файл 1 - Уникальных ТН: {}, Уникальных ФИО: {}",
-    "unique_tn_fio_file2": "Файл 2 - Уникальных ТН: {}, Уникальных ФИО: {}"
+    "unique_tn_fio_file2": "Файл 2 - Уникальных ТН: {}, Уникальных ФИО: {}",
+    "employees_july_count": "Сотрудников на 31 июля: {}",
+    "employees_august_count": "Сотрудников на 20 августа: {}",
+    "overlap_info_detailed": "Перекрытие (одинаковые): {} ({:.1f}%)",
+    "new_employees_info_detailed": "Новых сотрудников: {} ({:.1f}%)",
+    "removed_employees_info_detailed": "Убранных сотрудников: {} ({:.1f}%)",
+    "unique_tn_fio_debug": "Файл {} - Уникальных ТН: {}, Уникальных ФИО: {}",
+    "files_not_found_error": "Не найдены файлы {}.xlsx или {}.xlsx",
+    "files_loaded_debug": "Загружены файлы: data1 ({} строк), data2 ({} строк)",
+    "unique_tn_created": "Создан список из {} уникальных ТН",
+    "ranks_calculation": "Рассчитываем ранги ОД...",
+    "percentiles_calculation": "Рассчитываем процентили...",
+    "ranking_calculation": "Рассчитываем ранжирование по процентилям...",
+    "data_processed_debug": "Обработано данных: {} строк, {} колонок",
+    "load_time_debug": "Время загрузки файлов: {}",
+    "process_time_debug": "Время обработки данных: {}",
+    "save_time_debug": "Время сохранения файлов: {}",
+    "file1_info": "Файл 1 (31 июля) - Уникальных ТН: {}, Уникальных ФИО: {}",
+    "file2_info": "Файл 2 (20 августа) - Уникальных ТН: {}, Уникальных ФИО: {}",
+    "files_loaded_info": "Загружены файлы: data1 ({} строк), data2 ({} строк)",
+    "unique_tn_list_created": "Создан список из {} уникальных ТН",
+    "data_processing_time": "Время обработки данных: {}",
+    "data_processed_info": "Обработано данных: {} строк, {} колонок",
+    "file_loading_time": "Время загрузки файлов: {}",
+    "file_saving_time": "Время сохранения файлов: {}",
+    "files_not_found": "Не найдены файлы {}.xlsx или {}.xlsx"
 }
+
+# =============================================================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# =============================================================================
+
+def format_execution_time(seconds):
+    """
+    Форматирует время выполнения в формат MM:SS.mmm
+    
+    Args:
+        seconds (float): Время в секундах
+        
+    Returns:
+        str: Время в формате MM:SS.mmm
+    """
+    if seconds < 60:
+        return f"00:{seconds:06.3f}"
+    else:
+        minutes = int(seconds // 60)
+        remaining_seconds = seconds % 60
+        return f"{minutes:02d}:{remaining_seconds:06.3f}"
 
 # =============================================================================
 # КЛАСС ДЛЯ ЛОГИРОВАНИЯ
@@ -710,11 +756,11 @@ class TestDataGenerator:
         new_employees = employees_august - employees_july
         removed_employees = employees_july - employees_august
         
-        self.logger.log_info(f"Сотрудников на 31 июля: {len(employees_july)}")
-        self.logger.log_info(f"Сотрудников на 20 августа: {len(employees_august)}")
-        self.logger.log_info(f"Перекрытие (одинаковые): {len(overlap_employees)} ({len(overlap_employees)/len(employees_july)*100:.1f}%)")
-        self.logger.log_info(f"Новых сотрудников: {len(new_employees)} ({len(new_employees)/len(employees_august)*100:.1f}%)")
-        self.logger.log_info(f"Убранных сотрудников: {len(removed_employees)} ({len(removed_employees)/len(employees_july)*100:.1f}%)")
+        self.logger.log_info(LOG_MESSAGES["employees_july_count"].format(len(employees_july)))
+        self.logger.log_info(LOG_MESSAGES["employees_august_count"].format(len(employees_august)))
+        self.logger.log_info(LOG_MESSAGES["overlap_info_detailed"].format(len(overlap_employees), len(overlap_employees)/len(employees_july)*100))
+        self.logger.log_info(LOG_MESSAGES["new_employees_info_detailed"].format(len(new_employees), len(new_employees)/len(employees_august)*100))
+        self.logger.log_info(LOG_MESSAGES["removed_employees_info_detailed"].format(len(removed_employees), len(removed_employees)/len(employees_july)*100))
         
         # Проверяем уникальность ТН и ФИО в каждом файле
         unique_tn_1 = df1['ТН 10'].nunique()
@@ -722,8 +768,8 @@ class TestDataGenerator:
         unique_tn_2 = df2['ТН 10'].nunique()
         unique_fio_2 = df2['КМ'].nunique()
         
-        self.logger.log_debug(f"Файл 1 (31 июля) - Уникальных ТН: {unique_tn_1}, Уникальных ФИО: {unique_fio_1}")
-        self.logger.log_debug(f"Файл 2 (20 августа) - Уникальных ТН: {unique_tn_2}, Уникальных ФИО: {unique_fio_2}")
+        self.logger.log_debug(LOG_MESSAGES["file1_info"].format(unique_tn_1, unique_fio_1))
+        self.logger.log_debug(LOG_MESSAGES["file2_info"].format(unique_tn_2, unique_fio_2))
         
         if unique_tn_1 != len(df1):
             self.logger.log_error(LOG_MESSAGES["duplicate_tn_error"])
@@ -771,7 +817,7 @@ class TestDataGenerator:
         execution_time = end_time - self.start_time
         
         summary = {
-            'execution_time': execution_time,
+            'execution_time': format_execution_time(execution_time),
             'employees_created': self.employees_created,
             'files_created': self.files_created,
             'errors_count': self.errors_count
@@ -779,7 +825,7 @@ class TestDataGenerator:
         
         # Логируем сводку
         self.logger.log_info(LOG_MESSAGES["summary"].format(summary))
-        self.logger.log_info(LOG_MESSAGES["time_elapsed"].format(execution_time))
+        self.logger.log_info(LOG_MESSAGES["time_elapsed"].format(format_execution_time(execution_time)))
         self.logger.log_info(LOG_MESSAGES["employees_created"].format(self.employees_created))
         self.logger.log_info(LOG_MESSAGES["outputs_created"].format(self.files_created))
         self.logger.log_info(LOG_MESSAGES["errors_count"].format(self.errors_count))
@@ -830,6 +876,7 @@ class DataProcessor:
         Returns:
             list: Список загруженных DataFrame'ов
         """
+        start_time = time.time()
         dataframes = []
         
         for file_config in INPUT_FILES:
@@ -858,6 +905,10 @@ class DataProcessor:
                 self.logger.log_debug(LOG_MESSAGES["details_error"].format(traceback.format_exc()))
                 self.errors_count += 1
         
+        end_time = time.time()
+        execution_time = end_time - start_time
+        self.logger.log_debug(LOG_MESSAGES["file_loading_time"].format(format_execution_time(execution_time)))
+        
         return dataframes
     
     def process_data(self, dataframes):
@@ -870,6 +921,7 @@ class DataProcessor:
         Returns:
             pd.DataFrame: Обработанные данные
         """
+        start_time = time.time()
         self.logger.log_info(LOG_MESSAGES["processing_start"])
         
         if not dataframes:
@@ -892,10 +944,10 @@ class DataProcessor:
                     df2 = df_info['data']
             
             if df1 is None or df2 is None:
-                self.logger.log_error(f"Не найдены файлы {file1_name}.xlsx или {file2_name}.xlsx")
+                self.logger.log_error(LOG_MESSAGES["files_not_found"].format(file1_name, file2_name))
                 return pd.DataFrame()
             
-            self.logger.log_debug(f"Загружены файлы: data1 ({len(df1)} строк), data2 ({len(df2)} строк)")
+            self.logger.log_debug(LOG_MESSAGES["files_loaded_info"].format(len(df1), len(df2)))
             
             # Создаем список уникальных значений ТН 10, ТБ, ГОСБ, ФИО
             # Объединяем все уникальные ТН из обоих файлов
@@ -904,7 +956,7 @@ class DataProcessor:
                 df2[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates()
             ]).drop_duplicates(subset=['ТН 10'], keep='last')
             
-            self.logger.log_debug(f"Создан список из {len(all_tn)} уникальных ТН")
+            self.logger.log_debug(LOG_MESSAGES["unique_tn_list_created"].format(len(all_tn)))
             
             # Создаем результирующий DataFrame
             result_data = []
@@ -954,7 +1006,6 @@ class DataProcessor:
                     'ИНД (ТБ_ГОСБ_ТН)': f"{tb}_{gosb}_{tn}",
                     'ИНД (ТБ_ГОСБ_ФИО)': f"{tb}_{gosb}_{fio}",
                     'ИНД (ТБ_ГОСБ)': f"{tb}_{gosb}",
-                    'дубли': False,  # Будет пересчитано позже
                     'ЭФ.КМ': effectiveness_num,
                     'ОД ТЕКУЩИЙ': od_current,
                     'ранг ОД BANK': 0,  # Будет пересчитано позже
@@ -977,7 +1028,6 @@ class DataProcessor:
                     'число ТБ': 0,      # Будет пересчитано позже
                     'число подразделение': 0,  # Будет пересчитано позже
                     'вывод': '',       # Будет заполнено позже
-                    'ТЕСТ': True      # Всегда True для наших данных
                 }
                 
                 result_data.append(result_row)
@@ -1052,25 +1102,6 @@ class DataProcessor:
             # число подразделение - ранжирование по темпу в рамках ГОСБ
             result_df['число подразделение'] = result_df.groupby('ГОСБ')['темп'].rank(method='min', ascending=False)
             
-            # Рассчитываем колонку "вывод" на основе формул из Excel
-            def calculate_output(row):
-                # Формула из Excel: =IF(_КМ_Р[[#This Row],[число страна]]=$Z$1,$Z$2,IF(_КМ_Р[[#This Row],[число страна]]=$AA$1,$AA$2,IF(AND(_КМ_Р[[#This Row],[число страна]]=$AB$1,_КМ_Р[[#This Row],[число ТБ]]=$AA$1),$AB$2,IF(AND(_КМ_Р[[#This Row],[число страна]]=$AB$1,_КМ_Р[[#This Row],[число ТБ]]=$AB$1),$AC$2,IF(_КМ_Р[[#This Row],[число подразделение]]>=$AB$1,$AD$2,$AE$2))))))
-                # Упрощенная версия для понимания логики
-                if row['число страна'] <= 1:  # Топ-1 по стране
-                    return "Топ-1 по стране"
-                elif row['число страна'] <= 10:  # Топ-10 по стране
-                    return "Топ-10 по стране"
-                elif row['число страна'] <= 100 and row['число ТБ'] <= 10:  # Топ-100 по стране и топ-10 по ТБ
-                    return "Топ-100 по стране, топ-10 по ТБ"
-                elif row['число страна'] <= 100 and row['число ТБ'] <= 100:  # Топ-100 по стране и по ТБ
-                    return "Топ-100 по стране и по ТБ"
-                elif row['число подразделение'] <= 100:  # Топ-100 по подразделению
-                    return "Топ-100 по подразделению"
-                else:
-                    return "Обычный результат"
-            
-            result_df['вывод'] = result_df.apply(calculate_output, axis=1)
-            
             # Рассчитываем колонку "КОД вывода" согласно логике из Excel файла
             def calculate_kod_vyvoda(row):
                 """
@@ -1119,10 +1150,34 @@ class DataProcessor:
             
             result_df['КОД вывода'] = result_df.apply(calculate_kod_vyvoda, axis=1)
             
-            # Проверяем дублирование ТН 10
-            result_df['дубли'] = result_df['ТН 10'].duplicated(keep=False)
+            # Рассчитываем колонку "вывод" на основе кода вывода
+            def calculate_output_by_code(row):
+                """
+                Возвращает текстовое описание результата согласно коду вывода
+                """
+                kod = row['КОД вывода']
+                
+                if kod == 6:
+                    return "выше, чем у 90% КМ в стране"
+                elif kod == 5:
+                    return "выше, чем у 75% КМ в стране"
+                elif kod == 4:
+                    return "выше, чем у 75% КМ в тербанке (среди эффективных)"
+                elif kod == 3:
+                    return "выше, чем у 75% КМ в тербанке"
+                elif kod == 2:
+                    return "выше, чем у 75% КМ в ГОСБ/аппарате (среди эффективных)"
+                elif kod == 1:
+                    return "ниже, чем у 75% КМ в ГОСБ/аппарате"
+                else:
+                    return "обычный результат"
             
-            self.logger.log_debug(f"Обработано данных: {len(result_df)} строк, {len(result_df.columns)} колонок")
+            result_df['вывод'] = result_df.apply(calculate_output_by_code, axis=1)
+            
+            end_time = time.time()
+            execution_time = end_time - start_time
+            self.logger.log_debug(LOG_MESSAGES["data_processing_time"].format(format_execution_time(execution_time)))
+            self.logger.log_debug(LOG_MESSAGES["data_processed_info"].format(len(result_df), len(result_df.columns)))
             self.logger.log_info(LOG_MESSAGES["processing_end"])
             
             return result_df
@@ -1141,6 +1196,7 @@ class DataProcessor:
         Args:
             processed_data (pd.DataFrame): Обработанные данные
         """
+        start_time = time.time()
         if processed_data.empty:
             self.logger.log_error(LOG_MESSAGES["no_data_to_save"])
             return
@@ -1178,6 +1234,10 @@ class DataProcessor:
                 self.logger.log_error(error_msg)
                 self.logger.log_debug(LOG_MESSAGES["details_error"].format(traceback.format_exc()))
                 self.errors_count += 1
+        
+        end_time = time.time()
+        execution_time = end_time - start_time
+        self.logger.log_debug(LOG_MESSAGES["file_saving_time"].format(format_execution_time(execution_time)))
     
     def generate_summary(self):
         """Генерация сводки выполнения программы"""
@@ -1185,7 +1245,7 @@ class DataProcessor:
         execution_time = end_time - self.start_time
         
         summary = {
-            'execution_time': execution_time,
+            'execution_time': format_execution_time(execution_time),
             'files_processed': self.files_processed,
             'outputs_created': self.outputs_created,
             'errors_count': self.errors_count
@@ -1193,7 +1253,7 @@ class DataProcessor:
         
         # Логируем сводку
         self.logger.log_info(LOG_MESSAGES["summary"].format(summary))
-        self.logger.log_info(LOG_MESSAGES["time_elapsed"].format(execution_time))
+        self.logger.log_info(LOG_MESSAGES["time_elapsed"].format(format_execution_time(execution_time)))
         self.logger.log_info(LOG_MESSAGES["files_processed"].format(self.files_processed))
         self.logger.log_info(LOG_MESSAGES["outputs_created"].format(self.outputs_created))
         self.logger.log_info(LOG_MESSAGES["errors_count"].format(self.errors_count))
