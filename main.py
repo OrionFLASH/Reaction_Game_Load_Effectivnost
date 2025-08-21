@@ -22,7 +22,7 @@ import traceback
 # =============================================================================
 
 # Путь к рабочей папке (сырая строка для избежания экранирования)
-WORK_DIR = r"/Users/orionflash/Desktop/MyProject/Reaction_Effectiv_LOAD/WORK"
+WORK_DIR = r"./WORK"
 
 # Названия подпапок
 INPUT_FOLDER = "INPUT"      # Папка с входными файлами
@@ -51,10 +51,162 @@ LOG_FILE = {
 # Режим работы программы
 # "process" - обработка данных (основная работа)
 # "create-test" - создание тестовых данных
-PROGRAM_MODE = "process"
+PROGRAM_MODE = "create-test"
 
 # Уровень логирования (INFO или DEBUG)
 LOG_LEVEL = "INFO"
+
+# Параметры генерации тестовых данных
+DATA_PARAMS = {
+    "total_employees": 1600,        # Общее количество сотрудников
+    "effective_share": 0.80,        # Доля эффективных сотрудников (80%)
+    "operational_income_july_min": 50000,    # Минимальный операционный доход на 31 июля 2025 (тыс. руб.)
+    "operational_income_july_max": 200000,   # Максимальный операционный доход на 31 июля 2025 (тыс. руб.)
+    "operational_income_august_min": 50000,  # Минимальный операционный доход на 20 августа 2025 (тыс. руб.)
+    "operational_income_august_max": 220000, # Максимальный операционный доход на 20 августа 2025 (тыс. руб.)
+    "employee_overlap": 0.90,       # Доля одинаковых сотрудников в двух файлах (90%)
+    "new_employees_share": 0.05,    # Доля новых сотрудников (5%)
+    "removed_employees_share": 0.05 # Доля убранных сотрудников (5%)
+}
+
+# Территориальные банки (ТБ)
+TERRITORIAL_BANKS = [
+    "Байкальский банк",
+    "Волго-Вятский банк",
+    "Дальневосточный банк",
+    "Московский банк",
+    "Поволжский банк",
+    "Северо-Западный банк",
+    "Сибирский банк",
+    "Среднерусский банк",
+    "Уральский банк",
+    "Центрально-Черноземный банк",
+    "Юго-Западный банк"
+]
+
+# Головные отделения (ГОСБ) - 106 названий
+HEAD_OFFICES = [
+    # Байкальский банк (5 ГОСБ)
+    "Аппарат Байкальского Банка",
+    "Бурятское ГОСБ №8601",
+    "Иркутское ГОСБ №8586",
+    "Читинское ГОСБ №8600",
+    "Якутское ГОСБ №8603",
+    
+    # Волго-Вятский банк (12 ГОСБ)
+    "Аппарат Волго-Вятского банка",
+    "Банк Татарстан ГОСБ №8610",
+    "Владимирское ГОСБ №8611",
+    "Головное отделение по Нижегородской области",
+    "Кировское ГОСБ №8612",
+    "Марий Эл ГОСБ №8614",
+    "Мордовское ГОСБ №8589",
+    "Пермское ГОСБ №6984",
+    "Удмуртское ГОСБ №8618",
+    "Чувашское ГОСБ №8613",
+    
+    # Дальневосточный банк (9 ГОСБ)
+    "Аппарат Дальневосточного банка",
+    "Биробиджанское ГОСБ №4157",
+    "Благовещенское ГОСБ №8636",
+    "Камчатское ГОСБ №8556",
+    "Приморское ГОСБ №8635",
+    "Северо-Восточное ГОСБ №8645",
+    "Хабаровское ГОСБ №9070",
+    "Чукотское ГОСБ №8557",
+    "Южно-Сахалинское ГОСБ №8567",
+    
+    # Московский банк (5 ГОСБ)
+    "УПРАВЛЕНИЕ по работе с предприятиями инфраструктуры",
+    "УПРАВЛЕНИЕ по работе с предприятиями промышленности",
+    "УПРАВЛЕНИЕ по работе с предприятиями сферы недвижимости",
+    "УПРАВЛЕНИЕ по работе с предприятиями сферы услуг",
+    "УПРАВЛЕНИЕ по работе с предприятиями торговли",
+    
+    # Поволжский банк (8 ГОСБ)
+    "Аппарат Поволжского банка",
+    "Астраханское ГОСБ №8625",
+    "Волгоградское ГОСБ №8621",
+    "Оренбургское ГОСБ №8623",
+    "Пензенское ГОСБ №8624",
+    "Самарское ГОСБ №6991",
+    "Саратовское ГОСБ №8622",
+    "Ульяновское ГОСБ №8588",
+    
+    # Северо-Западный банк (10 ГОСБ)
+    "Аппарат Северо-Западного банка",
+    "Архангельское ГОСБ №8637",
+    "Вологодское ГОСБ №8638",
+    "ГО по г. Санкт-Петербургу",
+    "ГО по Ленинградской области",
+    "Калининградское ГОСБ №8626",
+    "Карельское ГОСБ №8628",
+    "Коми ГОСБ №8617",
+    "Мурманское ГОСБ №8627",
+    "Новгородское ГОСБ №8629",
+    "Псковское ГОСБ №8630",
+    
+    # Сибирский банк (8 ГОСБ)
+    "Абаканское ГОСБ №8602",
+    "Алтайское ГОСБ №8644",
+    "Аппарат Сибирского банка",
+    "Кемеровское ГОСБ №8615",
+    "Красноярское ГОСБ №8646",
+    "Новосибирское ГОСБ №8047",
+    "Омское ГОСБ №8634",
+    "Томское ГОСБ №8616",
+    
+    # Среднерусский банк (13 ГОСБ)
+    "Аппарат Среднерусского банка",
+    "Брянское ГОСБ №8605",
+    "Восточное ГОСБ №1023",
+    "Западное ГОСБ №1025",
+    "Ивановское ГОСБ №8639",
+    "Калужское ГОСБ №8608",
+    "Костромское ГОСБ №8640",
+    "Рязанское ГОСБ №8606",
+    "Северное ГОСБ №1026",
+    "Смоленское ГОСБ №8609",
+    "Тверское ГОСБ №8607",
+    "Тульское ГОСБ №8604",
+    "Южное ГОСБ №1024",
+    "Ярославское ГОСБ №17",
+    
+    # Уральский банк (7 ГОСБ)
+    "Аппарат Уральского банка",
+    "Башкирское ГОСБ №8598",
+    "Западно-Сибирское ГОСБ №8647",
+    "Курганское ГОСБ №8599",
+    "Свердловское ГОСБ №7003",
+    "Челябинское ГОСБ №8597",
+    "Югорское отделение №5940",
+    "Ямало-Ненецкое отделение №8369",
+    
+    # Центрально-Черноземный банк (8 ГОСБ)
+    "Аппарат Центрально-Черноземного банка",
+    "Белгородское ГОСБ №8592",
+    "ГО по Воронежской области",
+    "Головное отделение по ЛНР",
+    "Курское ГОСБ №8596",
+    "Липецкое ГОСБ №8593",
+    "Орловское ГОСБ №8595",
+    "Тамбовское ГОСБ №8594",
+    
+    # Юго-Западный банк (12 ГОСБ)
+    "Адыгейское ОСБ №8620",
+    "Аппарат Юго-Западного банка",
+    "Головное отделение по ДНР",
+    "Головное отделение по Республике Крым",
+    "Ингушское отделение № 8633",
+    "Кабардино-Балкарское ОСБ №8631",
+    "Калмыцкое ОСБ №8579",
+    "Карачаево-Черкесское ОСБ №8585",
+    "Краснодарское ГОСБ №8619",
+    "Ростовское ГОСБ №5221",
+    "Северо-Осетинское ОСБ №8632",
+    "Ставропольское ГОСБ №5230",
+    "Чеченское ОСБ №8643"
+]
 
 # Сообщения для логирования
 LOG_MESSAGES = {
@@ -72,7 +224,50 @@ LOG_MESSAGES = {
     "errors_count": "Количество ошибок: {}",
     "test_data_created": "Тестовые данные созданы успешно",
     "test_file_created": "Создан тестовый файл: {}",
-    "test_data_info": "Тестовый файл содержит {} строк и {} столбцов"
+    "test_data_info": "Тестовый файл содержит {} строк и {} столбцов",
+    "data_generation_start": "Начало генерации тестовых данных",
+    "data_generation_end": "Генерация тестовых данных завершена",
+    "employees_created": "Создано сотрудников: {}",
+    "tb_distribution": "Распределение по ТБ: {}",
+    "gosb_distribution": "Распределение по ГОСБ: {}",
+    "effective_distribution": "Распределение эффективных: {}",
+    "directory_ready": "Директория {} готова к работе",
+    "tb_mapping_created": "Создано распределение ГОСБ по ТБ: {} ТБ",
+    "progress_employees": "Сгенерировано сотрудников: {}",
+    "unique_tn_fio": "Уникальных ТН: {}, Уникальных ФИО: {}",
+    "duplicate_tn_error": "ОШИБКА: Дублирование табельных номеров!",
+    "duplicate_fio_error": "ОШИБКА: Дублирование ФИО!",
+    "file_saved_debug": "Файл сохранен: {}",
+    "file_size_debug": "Размер файла: {} строк, {} столбцов",
+    "generation_error": "Ошибка при генерации тестовых данных: {}",
+    "save_error": "Ошибка при сохранении файла: {}",
+    "details_error": "Детали ошибки: {}",
+    "file_not_found": "Файл {} не найден",
+    "load_file_error": "Ошибка при загрузке файла {}: {}",
+    "no_data_to_process": "Нет данных для обработки",
+    "no_data_to_save": "Нет данных для сохранения",
+    "data_processed": "Обработано данных: {} строк",
+    "duplicates_removed": "Удалено дубликатов: {}",
+    "missing_values_filled": "Заполнено пропущенных значений: {}",
+    "processing_error": "Ошибка при обработке данных: {}",
+    "rows_columns_loaded": "Загружено {} строк и {} столбцов из {}",
+    "critical_error": "Критическая ошибка в процессе выполнения: {}",
+    "mode_create_test": "Режим: Создание тестовых данных",
+    "mode_process": "Режим: Обработка данных",
+    "test_data_success": "Тестовые данные созданы успешно. Проверьте папку INPUT.",
+    "process_success": "Программа выполнена успешно. Проверьте папку OUTPUT для результатов.",
+    "main_critical_error": "Критическая ошибка при запуске программы: {}",
+    "file_saved_debug_old": "Файл сохранен: {}",
+    "analysis_file1": "=== Анализ файла 1 (31 июля 2025 года) ===",
+    "analysis_file2": "=== Анализ файла 2 (20 августа 2025 года) ===",
+    "analysis_overlap": "=== Анализ перекрытия сотрудников ===",
+    "employees_2024": "Сотрудников в 2024: {}",
+    "employees_2025": "Сотрудников в 2025: {}",
+    "overlap_info": "Перекрытие (одинаковые): {} ({:.1f}%)",
+    "new_employees_info": "Новых сотрудников: {} ({:.1f}%)",
+    "removed_employees_info": "Убранных сотрудников: {} ({:.1f}%)",
+    "unique_tn_fio_file1": "Файл 1 - Уникальных ТН: {}, Уникальных ФИО: {}",
+    "unique_tn_fio_file2": "Файл 2 - Уникальных ТН: {}, Уникальных ФИО: {}"
 }
 
 # =============================================================================
@@ -167,7 +362,7 @@ class DataProcessorLogger:
 # =============================================================================
 
 class TestDataGenerator:
-    """Класс для создания тестовых Excel файлов"""
+    """Класс для создания тестовых данных для анализа эффективности"""
     
     def __init__(self, work_dir, logger):
         """
@@ -182,9 +377,13 @@ class TestDataGenerator:
         self.start_time = None
         self.errors_count = 0
         self.files_created = 0
+        self.employees_created = 0
         
         # Создаем необходимые директории
         self._create_directories()
+        
+        # Создаем распределение ГОСБ по ТБ
+        self._create_tb_gosb_mapping()
     
     def _create_directories(self):
         """Создание необходимых директорий"""
@@ -196,63 +395,356 @@ class TestDataGenerator:
         
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
-            self.logger.log_debug(f"Директория {directory} готова к работе")
+            self.logger.log_debug(LOG_MESSAGES["directory_ready"].format(directory))
+    
+    def _create_tb_gosb_mapping(self):
+        """Создание распределения ГОСБ по ТБ"""
+        self.tb_gosb_mapping = {}
+        current_index = 0
+        
+        for tb in TERRITORIAL_BANKS:
+            # Определяем количество ГОСБ для данного ТБ
+            if tb == "Байкальский банк":
+                gosb_count = 5
+            elif tb == "Волго-Вятский банк":
+                gosb_count = 12
+            elif tb == "Дальневосточный банк":
+                gosb_count = 9
+            elif tb == "Московский банк":
+                gosb_count = 5
+            elif tb == "Поволжский банк":
+                gosb_count = 8
+            elif tb == "Северо-Западный банк":
+                gosb_count = 10
+            elif tb == "Сибирский банк":
+                gosb_count = 8
+            elif tb == "Среднерусский банк":
+                gosb_count = 13
+            elif tb == "Уральский банк":
+                gosb_count = 7
+            elif tb == "Центрально-Черноземный банк":
+                gosb_count = 8
+            elif tb == "Юго-Западный банк":
+                gosb_count = 12
+            else:
+                gosb_count = 10
+            
+            # Берем ГОСБ для данного ТБ
+            self.tb_gosb_mapping[tb] = HEAD_OFFICES[current_index:current_index + gosb_count]
+            current_index += gosb_count
+        
+        self.logger.log_debug(LOG_MESSAGES["tb_mapping_created"].format(len(self.tb_gosb_mapping)))
+    
+    def _generate_tn(self):
+        """Генерация табельного номера (10 знаков, справа значащие)"""
+        # Генерируем случайное число от 1 до 9999999999
+        tn_number = np.random.randint(1, 10000000000)
+        # Форматируем в 10 знаков с ведущими нулями
+        return f"{tn_number:010d}"
+    
+    def _generate_fio(self):
+        """Генерация уникального ФИО"""
+        # Списки имен, фамилий и отчеств
+        first_names_male = [
+            "Александр", "Сергей", "Владимир", "Дмитрий", "Андрей", "Алексей", "Максим", "Иван", "Михаил", "Николай",
+            "Артем", "Денис", "Евгений", "Даниил", "Роман", "Тимур", "Владислав", "Павел", "Константин", "Игорь"
+        ]
+        
+        first_names_female = [
+            "Анна", "Мария", "Елена", "Ольга", "Татьяна", "Наталья", "Ирина", "Светлана", "Юлия", "Екатерина",
+            "Анастасия", "Дарья", "Ксения", "Виктория", "Полина", "Алиса", "София", "Вероника", "Арина", "Диана"
+        ]
+        
+        last_names = [
+            "Иванов", "Смирнов", "Кузнецов", "Попов", "Васильев", "Петров", "Соколов", "Михайлов", "Новиков", "Федоров",
+            "Морозов", "Волков", "Алексеев", "Лебедев", "Семенов", "Егоров", "Павлов", "Козлов", "Степанов", "Николаев"
+        ]
+        
+        middle_names_male = [
+            "Александрович", "Сергеевич", "Владимирович", "Дмитриевич", "Андреевич", "Алексеевич", "Максимович", "Иванович", "Михайлович", "Николаевич"
+        ]
+        
+        middle_names_female = [
+            "Александровна", "Сергеевна", "Владимировна", "Дмитриевна", "Андреевна", "Алексеевна", "Максимовна", "Ивановна", "Михайловна", "Николаевна"
+        ]
+        
+        # Выбираем пол случайно
+        is_male = np.random.choice([True, False])
+        
+        if is_male:
+            first_name = np.random.choice(first_names_male)
+            middle_name = np.random.choice(middle_names_male)
+        else:
+            first_name = np.random.choice(first_names_female)
+            middle_name = np.random.choice(middle_names_female)
+        
+        last_name = np.random.choice(last_names)
+        
+        return f"{last_name} {first_name} {middle_name}"
+    
+    def _generate_effective_status(self):
+        """Генерация статуса эффективности"""
+        # 80% эффективных, 20% неэффективных
+        is_effective = np.random.random() < DATA_PARAMS["effective_share"]
+        return "👍" if is_effective else "👎"
+    
+    def _generate_operational_income_data(self):
+        """Генерация данных об операционном доходе"""
+        # Операционный доход на 31 июля 2025
+        income_july = np.random.randint(DATA_PARAMS["operational_income_july_min"], DATA_PARAMS["operational_income_july_max"] + 1)
+        
+        # Операционный доход на 20 августа 2025 (обычно больше или равен июльскому)
+        income_august = np.random.randint(income_july, DATA_PARAMS["operational_income_august_max"] + 1)
+        
+        # Прирост в процентах
+        growth_percent = ((income_august - income_july) / income_july * 100) if income_july > 0 else 0
+        
+        # Прирост в тыс. руб.
+        growth_amount = income_august - income_july
+        
+        # ОД конец квартала = август 2025
+        od_quarter = income_august
+        
+        return {
+            'operational_income_july': income_july,
+            'operational_income_august': income_august,
+            'growth_percent': round(growth_percent, 2),
+            'growth_amount': growth_amount,
+            'od_quarter': income_august
+        }
     
     def create_sample_data(self):
-        """Создание тестовых данных для демонстрации"""
+        """Создание тестовых данных для анализа эффективности"""
         self.start_time = time.time()
         
         try:
-            # Создаем первый набор данных
-            data1 = {
-                'ID': range(1, 101),
-                'Имя': [f'Пользователь_{i}' for i in range(1, 101)],
-                'Возраст': np.random.randint(18, 65, 100),
-                'Город': np.random.choice(['Москва', 'СПб', 'Новосибирск', 'Екатеринбург'], 100),
-                'Зарплата': np.random.randint(30000, 150000, 100),
-                'Отдел': np.random.choice(['IT', 'Маркетинг', 'Продажи', 'HR'], 100)
-            }
+            self.logger.log_info(LOG_MESSAGES["data_generation_start"])
             
-            # Создаем второй набор данных
-            data2 = {
-                'ID': range(51, 151),
-                'Имя': [f'Сотрудник_{i}' for i in range(51, 151)],
-                'Возраст': np.random.randint(20, 70, 100),
-                'Город': np.random.choice(['Москва', 'СПб', 'Казань', 'Нижний Новгород'], 100),
-                'Зарплата': np.random.randint(25000, 200000, 100),
-                'Отдел': np.random.choice(['IT', 'Аналитика', 'Финансы', 'Юридический'], 100)
-            }
+            # Создаем списки для данных
+            data1 = []  # Данные на 31 июля 2025 года
+            data2 = []  # Данные на 20 августа 2025 года
+            used_fios = set()
+            
+            # Генерируем базовый список сотрудников для 31 июля 2025 года
+            base_employees = []
+            for i in range(DATA_PARAMS["total_employees"]):
+                # Генерируем уникальный ФИО
+                while True:
+                    fio = self._generate_fio()
+                    if fio not in used_fios:
+                        used_fios.add(fio)
+                        break
+                
+                # Выбираем случайный ТБ и ГОСБ
+                tb = np.random.choice(TERRITORIAL_BANKS)
+                gosb = np.random.choice(self.tb_gosb_mapping[tb])
+                
+                # Генерируем остальные данные для 31 июля 2025 года
+                tn = self._generate_tn()
+                effective_status = self._generate_effective_status()
+                income_data_july = self._generate_operational_income_data()
+                
+                # Создаем строку данных для 31 июля 2025 года
+                row_july = {
+                    'ИНД (ТБ_ГОСБ_ТН)': f"{tb}_{gosb}_{tn}",
+                    'ИНД (ТБ_ГОСБ_ФИО)': f"{tb}_{gosb}_{fio}",
+                    'ТН 10': tn,
+                    'ТБ': tb,
+                    'ГОСБ': gosb,
+                    'КМ': fio,
+                    'Эффективный КМ': effective_status,
+                    '2025, тыс. руб.': income_data_july['operational_income_july']
+                }
+                
+                data1.append(row_july)
+                base_employees.append({
+                    'fio': fio,
+                    'tn': tn,
+                    'tb': tb,
+                    'gosb': gosb,
+                    'effective_status': effective_status,
+                    'income_july': income_data_july['operational_income_july']
+                })
+                
+                # Логируем прогресс каждые 100 сотрудников
+                if (i + 1) % 100 == 0:
+                    self.logger.log_debug(LOG_MESSAGES["progress_employees"].format(i + 1))
+            
+            # Теперь создаем данные для 20 августа 2025 года
+            # 90% сотрудников остаются, 5% новых, 5% убираем
+            overlap_count = int(DATA_PARAMS["total_employees"] * DATA_PARAMS["employee_overlap"])
+            new_count = int(DATA_PARAMS["total_employees"] * DATA_PARAMS["new_employees_share"])
+            removed_count = DATA_PARAMS["total_employees"] - overlap_count - new_count
+            
+            # Сотрудники, которые остаются (90%)
+            remaining_employees = np.random.choice(base_employees, overlap_count, replace=False)
+            
+            # Создаем данные для оставшихся сотрудников
+            for emp in remaining_employees:
+                # Генерируем доход на 20 августа (>= дохода на 31 июля)
+                income_august = np.random.randint(emp['income_july'], DATA_PARAMS["operational_income_august_max"] + 1)
+                
+                # Вычисляем прирост
+                growth_percent = ((income_august - emp['income_july']) / emp['income_july'] * 100) if emp['income_july'] > 0 else 0
+                growth_amount = income_august - emp['income_july']
+                
+                row_august = {
+                    'ИНД (ТБ_ГОСБ_ТН)': f"{emp['tb']}_{emp['gosb']}_{emp['tn']}",
+                    'ИНД (ТБ_ГОСБ_ФИО)': f"{emp['tb']}_{emp['gosb']}_{emp['fio']}",
+                    'ТН 10': emp['tn'],
+                    'ТБ': emp['tb'],
+                    'ГОСБ': emp['gosb'],
+                    'КМ': emp['fio'],
+                    'Эффективный КМ': emp['effective_status'],
+                    '2025, тыс. руб.': income_august,
+                    '2024, тыс. руб. на конец месяца': emp['income_july'],
+                    'Прирост, %': round(growth_percent, 2),
+                    'Прирост, тыс. руб.': growth_amount,
+                    'ОД конец квартала, тыс. руб.': income_august
+                }
+                
+                data2.append(row_august)
+            
+            # Добавляем новых сотрудников (5%)
+            for i in range(new_count):
+                # Генерируем уникальный ФИО
+                while True:
+                    fio = self._generate_fio()
+                    if fio not in used_fios:
+                        used_fios.add(fio)
+                        break
+                
+                # Выбираем случайный ТБ и ГОСБ
+                tb = np.random.choice(TERRITORIAL_BANKS)
+                gosb = np.random.choice(self.tb_gosb_mapping[tb])
+                
+                # Генерируем данные для нового сотрудника
+                tn = self._generate_tn()
+                effective_status = self._generate_effective_status()
+                income_data = self._generate_operational_income_data()
+                
+                # Создаем строку данных для нового сотрудника
+                row_august = {
+                    'ИНД (ТБ_ГОСБ_ТН)': f"{tb}_{gosb}_{tn}",
+                    'ИНД (ТБ_ГОСБ_ФИО)': f"{tb}_{gosb}_{fio}",
+                    'ТН 10': tn,
+                    'ТБ': tb,
+                    'ГОСБ': gosb,
+                    'КМ': fio,
+                    'Эффективный КМ': effective_status,
+                    '2025, тыс. руб.': income_data['operational_income_august'],
+                    '2024, тыс. руб. на конец месяца': income_data['operational_income_july'],
+                    'Прирост, %': income_data['growth_percent'],
+                    'Прирост, тыс. руб.': income_data['growth_amount'],
+                    'ОД конец квартала, тыс. руб.': income_data['od_quarter']
+                }
+                
+                data2.append(row_august)
             
             # Создаем DataFrame'ы
-            df1 = pd.DataFrame(data1)
-            df2 = pd.DataFrame(data2)
+            df1 = pd.DataFrame(data1)  # Данные на 31 июля 2025 года
+            df2 = pd.DataFrame(data2)  # Данные на 20 августа 2025 года
+            self.employees_created = len(df1) + len(df2)
+            
+            # Анализируем распределение
+            self._analyze_distribution(df1, df2)
             
             # Сохраняем файлы
-            file1_path = self.work_dir / INPUT_FOLDER / "data1.xlsx"
-            file2_path = self.work_dir / INPUT_FOLDER / "data2.xlsx"
+            self._save_data_files(df1, df2)
             
-            df1.to_excel(file1_path, index=False, engine='openpyxl')
-            df2.to_excel(file2_path, index=False, engine='openpyxl')
-            
-            self.logger.log_info(LOG_MESSAGES["test_file_created"].format(file1_path.name))
-            self.logger.log_debug(LOG_MESSAGES["test_data_info"].format(len(df1), len(df1.columns)))
-            self.files_created += 1
-            
-            self.logger.log_info(LOG_MESSAGES["test_file_created"].format(file2_path.name))
-            self.logger.log_debug(LOG_MESSAGES["test_data_info"].format(len(df2), len(df2.columns)))
-            self.files_created += 1
-            
-            self.logger.log_info(LOG_MESSAGES["test_data_created"])
+            self.logger.log_info(LOG_MESSAGES["data_generation_end"])
             
         except Exception as e:
-            error_msg = f"Ошибка при создании тестовых данных: {str(e)}"
+            error_msg = LOG_MESSAGES["generation_error"].format(str(e))
             self.logger.log_error(error_msg)
-            self.logger.log_debug(f"Детали ошибки: {traceback.format_exc()}")
+            self.logger.log_debug(LOG_MESSAGES["details_error"].format(traceback.format_exc()))
             self.errors_count += 1
         
         finally:
             # Генерируем сводку
             self._generate_summary()
+    
+    def _analyze_distribution(self, df1, df2):
+        """Анализ распределения данных по двум файлам"""
+        # Анализ файла 1 (31 июля 2025 года)
+        self.logger.log_info(LOG_MESSAGES["analysis_file1"])
+        tb_distribution_1 = df1['ТБ'].value_counts()
+        self.logger.log_info(LOG_MESSAGES["tb_distribution"].format(dict(tb_distribution_1)))
+        
+        effective_distribution_1 = df1['Эффективный КМ'].value_counts()
+        self.logger.log_info(LOG_MESSAGES["effective_distribution"].format(dict(effective_distribution_1)))
+        
+        # Анализ файла 2 (20 августа 2025 года)
+        self.logger.log_info(LOG_MESSAGES["analysis_file2"])
+        tb_distribution_2 = df2['ТБ'].value_counts()
+        self.logger.log_info(LOG_MESSAGES["tb_distribution"].format(dict(tb_distribution_2)))
+        
+        effective_distribution_2 = df2['Эффективный КМ'].value_counts()
+        self.logger.log_info(LOG_MESSAGES["effective_distribution"].format(dict(effective_distribution_2)))
+        
+        # Анализ перекрытия сотрудников
+        self.logger.log_info(LOG_MESSAGES["analysis_overlap"])
+        employees_july = set(df1['КМ'])
+        employees_august = set(df2['КМ'])
+        
+        overlap_employees = employees_july.intersection(employees_august)
+        new_employees = employees_august - employees_july
+        removed_employees = employees_july - employees_august
+        
+        self.logger.log_info(f"Сотрудников на 31 июля: {len(employees_july)}")
+        self.logger.log_info(f"Сотрудников на 20 августа: {len(employees_august)}")
+        self.logger.log_info(f"Перекрытие (одинаковые): {len(overlap_employees)} ({len(overlap_employees)/len(employees_july)*100:.1f}%)")
+        self.logger.log_info(f"Новых сотрудников: {len(new_employees)} ({len(new_employees)/len(employees_august)*100:.1f}%)")
+        self.logger.log_info(f"Убранных сотрудников: {len(removed_employees)} ({len(removed_employees)/len(employees_july)*100:.1f}%)")
+        
+        # Проверяем уникальность ТН и ФИО в каждом файле
+        unique_tn_1 = df1['ТН 10'].nunique()
+        unique_fio_1 = df1['КМ'].nunique()
+        unique_tn_2 = df2['ТН 10'].nunique()
+        unique_fio_2 = df2['КМ'].nunique()
+        
+        self.logger.log_debug(f"Файл 1 (31 июля) - Уникальных ТН: {unique_tn_1}, Уникальных ФИО: {unique_fio_1}")
+        self.logger.log_debug(f"Файл 2 (20 августа) - Уникальных ТН: {unique_tn_2}, Уникальных ФИО: {unique_fio_2}")
+        
+        if unique_tn_1 != len(df1):
+            self.logger.log_error(LOG_MESSAGES["duplicate_tn_error"])
+        if unique_fio_1 != len(df1):
+            self.logger.log_error(LOG_MESSAGES["duplicate_fio_error"])
+        if unique_tn_2 != len(df2):
+            self.logger.log_error(LOG_MESSAGES["duplicate_tn_error"])
+        if unique_fio_2 != len(df2):
+            self.logger.log_error(LOG_MESSAGES["duplicate_tn_error"])
+    
+    def _save_data_files(self, df1, df2):
+        """Сохранение данных в два файла"""
+        try:
+            # Формируем имена файлов с временной меткой
+            timestamp = datetime.now().strftime("_%Y%m%d_%H%M%S")
+            filename1 = f"data1{timestamp}.xlsx"  # Файл на 31 июля 2025 года
+            filename2 = f"data2{timestamp}.xlsx"  # Файл на 20 августа 2025 года
+            
+            file_path1 = self.work_dir / INPUT_FOLDER / filename1
+            file_path2 = self.work_dir / INPUT_FOLDER / filename2
+            
+            # Сохраняем файл 1 (31 июля 2025 года)
+            df1.to_excel(file_path1, index=False, engine='openpyxl')
+            self.logger.log_info(LOG_MESSAGES["test_file_created"].format(filename1))
+            self.logger.log_debug(LOG_MESSAGES["file_saved_debug"].format(file_path1))
+            self.logger.log_debug(LOG_MESSAGES["file_size_debug"].format(len(df1), len(df1.columns)))
+            self.files_created += 1
+            
+            # Сохраняем файл 2 (20 августа 2025 года)
+            df2.to_excel(file_path2, index=False, engine='openpyxl')
+            self.logger.log_info(LOG_MESSAGES["test_file_created"].format(filename2))
+            self.logger.log_debug(LOG_MESSAGES["file_saved_debug"].format(file_path2))
+            self.logger.log_debug(LOG_MESSAGES["file_size_debug"].format(len(df2), len(df2.columns)))
+            self.files_created += 1
+            
+        except Exception as e:
+            error_msg = LOG_MESSAGES["save_error"].format(str(e))
+            self.logger.log_error(error_msg)
+            self.logger.log_debug(LOG_MESSAGES["details_error"].format(traceback.format_exc()))
+            self.errors_count += 1
     
     def _generate_summary(self):
         """Генерация сводки создания тестовых данных"""
@@ -261,6 +753,7 @@ class TestDataGenerator:
         
         summary = {
             'execution_time': execution_time,
+            'employees_created': self.employees_created,
             'files_created': self.files_created,
             'errors_count': self.errors_count
         }
@@ -268,7 +761,8 @@ class TestDataGenerator:
         # Логируем сводку
         self.logger.log_info(LOG_MESSAGES["summary"].format(summary))
         self.logger.log_info(LOG_MESSAGES["time_elapsed"].format(execution_time))
-        self.logger.log_info(f"Создано тестовых файлов: {self.files_created}")
+        self.logger.log_info(LOG_MESSAGES["employees_created"].format(self.employees_created))
+        self.logger.log_info(LOG_MESSAGES["outputs_created"].format(self.files_created))
         self.logger.log_info(LOG_MESSAGES["errors_count"].format(self.errors_count))
         
         return summary
@@ -308,7 +802,7 @@ class DataProcessor:
         
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
-            self.logger.log_debug(f"Директория {directory} готова к работе")
+            self.logger.log_debug(LOG_MESSAGES["directory_ready"].format(directory))
     
     def load_excel_files(self):
         """
@@ -333,16 +827,16 @@ class DataProcessor:
                     })
                     
                     self.logger.log_info(LOG_MESSAGES["file_loaded"].format(file_path.name))
-                    self.logger.log_debug(f"Загружено {len(df)} строк и {len(df.columns)} столбцов из {file_path.name}")
+                    self.logger.log_debug(LOG_MESSAGES["rows_columns_loaded"].format(len(df), len(df.columns), file_path.name))
                     self.files_processed += 1
                 else:
-                    self.logger.log_error(f"Файл {file_path} не найден")
+                    self.logger.log_error(LOG_MESSAGES["file_not_found"].format(file_path))
                     self.errors_count += 1
                     
             except Exception as e:
-                error_msg = f"Ошибка при загрузке файла {file_config['name']}: {str(e)}"
+                error_msg = LOG_MESSAGES["load_file_error"].format(file_config['name'], str(e))
                 self.logger.log_error(error_msg)
-                self.logger.log_debug(f"Детали ошибки: {traceback.format_exc()}")
+                self.logger.log_debug(LOG_MESSAGES["details_error"].format(traceback.format_exc()))
                 self.errors_count += 1
         
         return dataframes
@@ -360,7 +854,7 @@ class DataProcessor:
         self.logger.log_info(LOG_MESSAGES["processing_start"])
         
         if not dataframes:
-            self.logger.log_error("Нет данных для обработки")
+            self.logger.log_error(LOG_MESSAGES["no_data_to_process"])
             return pd.DataFrame()
         
         try:
@@ -380,17 +874,17 @@ class DataProcessor:
             if len(combined_df.columns) > 0:
                 combined_df = combined_df.sort_values(by=combined_df.columns[0])
             
-            self.logger.log_debug(f"Обработано данных: {len(combined_df)} строк")
-            self.logger.log_debug(f"Удалено дубликатов: {duplicates_removed}")
-            self.logger.log_debug(f"Заполнено пропущенных значений: {missing_values}")
+            self.logger.log_debug(LOG_MESSAGES["data_processed"].format(len(combined_df)))
+            self.logger.log_debug(LOG_MESSAGES["duplicates_removed"].format(duplicates_removed))
+            self.logger.log_debug(LOG_MESSAGES["missing_values_filled"].format(missing_values))
             
             self.logger.log_info(LOG_MESSAGES["processing_end"])
             return combined_df
             
         except Exception as e:
-            error_msg = f"Ошибка при обработке данных: {str(e)}"
+            error_msg = LOG_MESSAGES["processing_error"].format(str(e))
             self.logger.log_error(error_msg)
-            self.logger.log_debug(f"Детали ошибки: {traceback.format_exc()}")
+            self.logger.log_debug(LOG_MESSAGES["details_error"].format(traceback.format_exc()))
             self.errors_count += 1
             return pd.DataFrame()
     
@@ -402,7 +896,7 @@ class DataProcessor:
             processed_data (pd.DataFrame): Обработанные данные
         """
         if processed_data.empty:
-            self.logger.log_error("Нет данных для сохранения")
+            self.logger.log_error(LOG_MESSAGES["no_data_to_save"])
             return
         
         for output_config in OUTPUT_FILES:
@@ -430,13 +924,13 @@ class DataProcessor:
                     processed_data.to_excel(file_path, index=False, engine='openpyxl')
                 
                 self.logger.log_info(LOG_MESSAGES["file_saved"].format(filename))
-                self.logger.log_debug(f"Файл сохранен: {file_path}")
+                self.logger.log_debug(LOG_MESSAGES["file_saved_debug_old"].format(file_path))
                 self.outputs_created += 1
                 
             except Exception as e:
-                error_msg = f"Ошибка при сохранении файла {output_config['name']}: {str(e)}"
+                error_msg = LOG_MESSAGES["save_error"].format(f"{output_config['name']}: {str(e)}")
                 self.logger.log_error(error_msg)
-                self.logger.log_debug(f"Детали ошибки: {traceback.format_exc()}")
+                self.logger.log_debug(LOG_MESSAGES["details_error"].format(traceback.format_exc()))
                 self.errors_count += 1
     
     def generate_summary(self):
@@ -475,9 +969,9 @@ class DataProcessor:
             self.save_outputs(processed_data)
             
         except Exception as e:
-            error_msg = f"Критическая ошибка в процессе выполнения: {str(e)}"
+            error_msg = LOG_MESSAGES["processing_error"].format(str(e))
             self.logger.log_error(error_msg)
-            self.logger.log_debug(f"Детали ошибки: {traceback.format_exc()}")
+            self.logger.log_debug(LOG_MESSAGES["details_error"].format(traceback.format_exc()))
             self.errors_count += 1
         
         finally:
@@ -506,23 +1000,23 @@ def main():
         
         if PROGRAM_MODE == 'create-test':
             # Режим создания тестовых данных
-            logger.log_info("Режим: Создание тестовых данных")
+            logger.log_info(LOG_MESSAGES["mode_create_test"])
             generator = TestDataGenerator(WORK_DIR, logger)
             generator.create_sample_data()
-            print("Тестовые данные созданы успешно. Проверьте папку INPUT.")
+            print(LOG_MESSAGES["test_data_success"])
             
         else:
             # Режим обработки данных (по умолчанию)
-            logger.log_info("Режим: Обработка данных")
+            logger.log_info(LOG_MESSAGES["mode_process"])
             processor = DataProcessor(WORK_DIR, logger)
             processor.run()
-            print("Программа выполнена успешно. Проверьте папку OUTPUT для результатов.")
+            print(LOG_MESSAGES["process_success"])
         
         # Логируем завершение работы
         logger.log_end()
         
     except Exception as e:
-        print(f"Критическая ошибка при запуске программы: {str(e)}")
+        print(LOG_MESSAGES["main_critical_error"].format(str(e)))
         sys.exit(1)
 
 # =============================================================================
