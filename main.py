@@ -31,8 +31,8 @@ LOGS_FOLDER = "LOGS"        # Папка с логами
 
 # Настройки входных файлов (имя без расширения, расширение отдельно)
 INPUT_FILES = [
-    {"name": "data1_20250821_142112", "extension": ".xlsx"},
-    {"name": "data2_20250821_142112", "extension": ".xlsx"}
+    {"name": "data1_20250821_144017", "extension": ".xlsx"},
+    {"name": "data2_20250821_144017", "extension": ".xlsx"}
 ]
 
 # Настройки выходных файлов
@@ -51,7 +51,7 @@ LOG_FILE = {
 # Режим работы программы
 # "process" - обработка данных (основная работа)
 # "create-test" - создание тестовых данных
-PROGRAM_MODE = "create-test"
+PROGRAM_MODE = "process"
 
 # Уровень логирования (INFO или DEBUG)
 LOG_LEVEL = "DEBUG"
@@ -874,18 +874,22 @@ class DataProcessor:
             return pd.DataFrame()
         
         try:
-            # Находим файлы data1 и data2
+            # Находим файлы data1 и data2 по именам из INPUT_FILES
             df1 = None
             df2 = None
             
+            # Получаем имена файлов из конфигурации (без расширения)
+            file1_name = INPUT_FILES[0]['name']
+            file2_name = INPUT_FILES[1]['name']
+            
             for df_info in dataframes:
-                if df_info['name'] == 'data1':
+                if df_info['name'] == file1_name:
                     df1 = df_info['data']
-                elif df_info['name'] == 'data2':
+                elif df_info['name'] == file2_name:
                     df2 = df_info['data']
             
             if df1 is None or df2 is None:
-                self.logger.log_error("Не найдены файлы data1.xlsx или data2.xlsx")
+                self.logger.log_error(f"Не найдены файлы {file1_name}.xlsx или {file2_name}.xlsx")
                 return pd.DataFrame()
             
             self.logger.log_debug(f"Загружены файлы: data1 ({len(df1)} строк), data2 ({len(df2)} строк)")
