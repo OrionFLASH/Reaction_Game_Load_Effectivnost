@@ -31,8 +31,8 @@ LOGS_FOLDER = "LOGS"        # Папка с логами
 
 # Настройки входных файлов (имя без расширения, расширение отдельно)
 INPUT_FILES = [
-    {"name": "data1", "extension": ".xlsx"},
-    {"name": "data2", "extension": ".xlsx"}
+    {"name": "data1_20250821_142112", "extension": ".xlsx"},
+    {"name": "data2_20250821_142112", "extension": ".xlsx"}
 ]
 
 # Настройки выходных файлов
@@ -545,7 +545,10 @@ class TestDataGenerator:
                 effective_status = self._generate_effective_status()
                 
                 # Генерируем базовый доход (как бы на начало периода) и доход на 31 июля
-                base_income = np.random.randint(DATA_PARAMS["operational_income_july_min"] - 10000, DATA_PARAMS["operational_income_july_min"])
+                # Базовый доход в диапазоне от 60% до 90% от минимального дохода июля
+                base_income_min = int(DATA_PARAMS["operational_income_july_min"] * 0.6)
+                base_income_max = int(DATA_PARAMS["operational_income_july_min"] * 0.9)
+                base_income = np.random.randint(base_income_min, base_income_max + 1)
                 income_july = np.random.randint(DATA_PARAMS["operational_income_july_min"], DATA_PARAMS["operational_income_july_max"] + 1)
                 
                 # Вычисляем прирост от базового дохода до 31 июля
