@@ -610,8 +610,6 @@ class TestDataGenerator:
                 
                 # Создаем строку данных для 31 июля 2025 года
                 row_july = {
-                    'ИНД (ТБ_ГОСБ_ТН)': f"{tb}_{gosb}_{tn}",
-                    'ИНД (ТБ_ГОСБ_ФИО)': f"{tb}_{gosb}_{fio}",
                     'ТН 10': tn,
                     'ТБ': tb,
                     'ГОСБ': gosb,
@@ -658,8 +656,6 @@ class TestDataGenerator:
                 growth_amount = income_august - emp['income_july']
                 
                 row_august = {
-                    'ИНД (ТБ_ГОСБ_ТН)': f"{emp['tb']}_{emp['gosb']}_{emp['tn']}",
-                    'ИНД (ТБ_ГОСБ_ФИО)': f"{emp['tb']}_{emp['gosb']}_{emp['fio']}",
                     'ТН 10': emp['tn'],
                     'ТБ': emp['tb'],
                     'ГОСБ': emp['gosb'],
@@ -694,8 +690,6 @@ class TestDataGenerator:
                 
                 # Создаем строку данных для нового сотрудника
                 row_august = {
-                    'ИНД (ТБ_ГОСБ_ТН)': f"{tb}_{gosb}_{tn}",
-                    'ИНД (ТБ_ГОСБ_ФИО)': f"{tb}_{gosb}_{fio}",
                     'ТН 10': tn,
                     'ТБ': tb,
                     'ГОСБ': gosb,
@@ -1007,9 +1001,6 @@ class DataProcessor:
                     'ТБ': tb,
                     'ГОСБ': gosb,
                     'ФИО': fio,
-                    'ИНД (ТБ_ГОСБ_ТН)': f"{tb}_{gosb}_{tn}",
-                    'ИНД (ТБ_ГОСБ_ФИО)': f"{tb}_{gosb}_{fio}",
-                    'ИНД (ТБ_ГОСБ)': f"{tb}_{gosb}",
                     'ЭФ.КМ': effectiveness_num,
                     'ОД ТЕКУЩИЙ': od_current,
                     'ранг ОД BANK': 0,  # Будет пересчитано позже
