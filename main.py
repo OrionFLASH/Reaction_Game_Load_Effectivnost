@@ -13,6 +13,7 @@ import time
 import logging
 import pandas as pd
 import numpy as np
+from openpyxl import load_workbook
 from datetime import datetime
 from pathlib import Path
 import traceback
@@ -295,7 +296,10 @@ LOG_MESSAGES = {
     "data_processed_info": "Обработано данных: {} строк, {} колонок",
     "file_loading_time": "Время загрузки файлов: {}",
     "file_saving_time": "Время сохранения файлов: {}",
-    "files_not_found": "Не найдены файлы {}.xlsx или {}.xlsx"
+    "files_not_found": "Не найдены файлы {}.xlsx или {}.xlsx",
+    "autofilter_added": "Добавлен автофильтр на диапазон E2:{}",
+    "panes_frozen": "Установлена фиксация панелей на уровне E2",
+    "columns_formatted": "Отформатированы {} колонок по содержимому"
 }
 
 # =============================================================================
@@ -1038,24 +1042,20 @@ class DataProcessor:
             # Рассчитываем ранги ОД
             self.logger.log_debug("Рассчитываем ранги ОД...")
             
-            # РАНГ ОД ДЛЯ УРОВНЯ BANK (по всем данным)
-            result_df['ранг ОД BANK'] = result_df['ОД ТЕКУЩИЙ'].rank(method='min', ascending=False)
+            # РАНГ ОД ДЛЯ УРОВНЯ BANK (по всем данным) - используем процентильный ранг как в Excel
+            # В Excel это PERCENTRANK, который дает значения от 0 до 1
+            # Мы рассчитываем это как: (количество значений меньше текущего) / (общее количество - 1)
+            result_df['ранг ОД BANK'] = result_df['ОД ТЕКУЩИЙ'].apply(
+                lambda x: (result_df['ОД ТЕКУЩИЙ'] < x).sum() / (len(result_df) - 1) * 100
+            ).round(2)
             
-            # РАНГ ОД ДЛЯ УРОВНЯ TB (по каждому ТБ отдельно)
-            result_df['ранг ОД TB'] = result_df.groupby('ТБ')['ОД ТЕКУЩИЙ'].rank(method='min', ascending=False)
-            
-            # Конвертируем ранги в проценты
-            total_count = len(result_df)
-            result_df['ранг ОД BANK'] = (result_df['ранг ОД BANK'] / total_count * 100).round(2)
-            
-            # Конвертируем ранги ТБ в проценты для каждого ТБ отдельно
-            for tb in result_df['ТБ'].unique():
-                tb_mask = result_df['ТБ'] == tb
-                tb_count = tb_mask.sum()
-                # Ранг 1 = 0%, ранг N = 100% (где N - количество сотрудников в ТБ)
-                result_df.loc[tb_mask, 'ранг ОД TB'] = (
-                    (result_df.loc[tb_mask, 'ранг ОД TB'] - 1) / (tb_count - 1) * 100
-                ).round(2)
+            # РАНГ ОД ДЛЯ УРОВНЯ TB (по каждому ТБ отдельно) - аналогично
+            result_df['ранг ОД TB'] = result_df.apply(
+                lambda row: (
+                    result_df[result_df['ТБ'] == row['ТБ']]['ОД ТЕКУЩИЙ'] < row['ОД ТЕКУЩИЙ']
+                ).sum() / (len(result_df[result_df['ТБ'] == row['ТБ']]) - 1) * 100
+                if len(result_df[result_df['ТБ'] == row['ТБ']]) > 1 else 0, axis=1
+            ).round(2)
             
             # Рассчитываем процентили для трех уровней
             self.logger.log_debug("Рассчитываем процентили...")
@@ -1222,8 +1222,62 @@ class DataProcessor:
                     # Сохраняем CSV с разделителем ";"
                     processed_data.to_csv(file_path, sep=';', index=False, encoding='utf-8')
                 elif output_config['extension'].lower() == '.xlsx':
-                    # Сохраняем Excel
+                    # Сохраняем Excel с автофильтром и форматированием
                     processed_data.to_excel(file_path, index=False, engine='openpyxl')
+                    
+                    # Открываем файл для добавления автофильтра и форматирования
+                    
+                    # Загружаем сохраненный файл
+                    wb = load_workbook(file_path)
+                    ws = wb.active
+                    
+                    # Добавляем автофильтр начиная с колонки E (5-я колонка) и строки 2
+                    # Определяем диапазон для автофильтра (все данные)
+                    max_row = len(processed_data) + 1  # +1 потому что pandas.to_excel добавляет заголовки
+                    max_col = len(processed_data.columns)
+                    
+                    # Функция для получения буквы колонки по номеру
+                    def get_column_letter(col_num):
+                        """Преобразует номер колонки в букву Excel (A, B, C, ..., Z, AA, AB, ...)"""
+                        result = ""
+                        while col_num > 0:
+                            col_num, remainder = divmod(col_num - 1, 26)
+                            result = chr(65 + remainder) + result
+                        return result
+                    
+                    # Устанавливаем автофильтр на диапазон E2:последняя_колонка_последняя_строка
+                    # E = 5-я колонка, поэтому последняя колонка = 5 + max_col - 1 = 4 + max_col
+                    last_col_letter = get_column_letter(4 + max_col)
+                    ws.auto_filter.ref = f"E2:{last_col_letter}{max_row}"
+                    
+                    # Фиксируем панели на уровне E2 (колонка E, строка 2)
+                    ws.freeze_panes = "E2"
+                    
+                    # Форматируем по содержимому для всех колонок (кроме индексов)
+                    for col in range(1, max_col + 1):
+                        column_letter = get_column_letter(col)
+                        # Получаем максимальную ширину в колонке
+                        max_width = 0
+                        for row in range(1, max_row + 1):
+                            cell_value = ws[f"{column_letter}{row}"].value
+                            if cell_value is not None:
+                                # Примерная ширина для разных типов данных
+                                if isinstance(cell_value, (int, float)):
+                                    width = len(str(cell_value)) + 2
+                                else:
+                                    width = len(str(cell_value)) + 1
+                                max_width = max(max_width, width)
+                        
+                        # Устанавливаем ширину колонки с небольшим запасом
+                        ws.column_dimensions[column_letter].width = min(max_width + 2, 50)
+                    
+                    # Сохраняем изменения
+                    wb.save(file_path)
+                    wb.close()
+                    
+                    self.logger.log_debug(LOG_MESSAGES["autofilter_added"].format(f"{last_col_letter}{max_row}"))
+                    self.logger.log_debug(LOG_MESSAGES["panes_frozen"])
+                    self.logger.log_debug(LOG_MESSAGES["columns_formatted"].format(max_col))
                 
                 self.logger.log_info(LOG_MESSAGES["file_saved"].format(filename))
                 self.logger.log_debug(LOG_MESSAGES["file_saved_debug_old"].format(file_path))
