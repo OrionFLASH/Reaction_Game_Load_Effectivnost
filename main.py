@@ -614,8 +614,13 @@ class TestDataGenerator:
         min_value = tn_format.get('min_value', 1)
         max_value = tn_format.get('max_value', 9999999999)
         
-        # Генерируем случайное число в заданном диапазоне
-        tn_number = np.random.randint(min_value, max_value + 1)
+        # Генерируем случайное число с ограничением по количеству знаков
+        # Чтобы гарантировать, что zfill() добавит лидирующие нули
+        max_digits_for_generation = total_digits - 1  # Оставляем место для лидирующих нулей
+        max_value_for_generation = 10 ** max_digits_for_generation - 1
+        
+        # Генерируем случайное число в ограниченном диапазоне
+        tn_number = np.random.randint(min_value, max_value_for_generation + 1)
         
         # Форматируем с лидирующими нулями до общего количества знаков
         # Принудительно создаем строку с лидирующими нулями

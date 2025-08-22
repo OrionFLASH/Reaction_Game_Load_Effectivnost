@@ -9,8 +9,8 @@ import os
 
 # Путь к файлам
 input_dir = "/Users/orionflash/Desktop/MyProject/Reaction_Effectiv_LOAD/WORK/INPUT"
-file1 = "data1_20250822_162140.xlsx"
-file2 = "data2_20250822_162140.xlsx"
+file1 = "data1_20250822_162830.xlsx"
+file2 = "data2_20250822_162830.xlsx"
 
 print("=== ПРОВЕРКА ФОРМАТА ТН 10 ===")
 
