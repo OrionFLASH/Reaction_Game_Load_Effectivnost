@@ -63,10 +63,10 @@ LOG_LEVEL = "DEBUG"
 DATA_PARAMS = {
     "total_employees": 1600,        # Общее количество сотрудников
     "effective_share": 0.80,        # Доля эффективных сотрудников (80%)
-    "operational_income_july_min": 500000,    # Минимальный операционный доход на 31 июля 2025 (тыс. руб.)
-    "operational_income_july_max": 20000000,   # Максимальный операционный доход на 31 июля 2025 (тыс. руб.)
-    "operational_income_august_min": 500000,  # Минимальный операционный доход на 20 августа 2025 (тыс. руб.)
-    "operational_income_august_max": 220000000, # Максимальный операционный доход на 20 августа 2025 (тыс. руб.)
+    "operational_income_final_min": 500000,    # Минимальный операционный доход на 31 июля 2025 (финальный период, тыс. руб.)
+    "operational_income_final_max": 220000000,   # Максимальный операционный доход на 31 июля 2025 (финальный период, тыс. руб.)
+    "operational_income_current_min": 500000,  # Минимальный операционный доход на 20 августа 2025 (текущий период, тыс. руб.)
+    "operational_income_current_max": 220000000, # Максимальный операционный доход на 20 августа 2025 (текущий период, тыс. руб.)
     "employee_overlap": 0.90,       # Доля одинаковых сотрудников в двух файлах (90%)
     "new_employees_share": 0.05,    # Доля новых сотрудников (5%)
     "removed_employees_share": 0.05 # Доля убранных сотрудников (5%)
@@ -617,8 +617,13 @@ class TestDataGenerator:
         tn_number = np.random.randint(min_value, max_value + 1)
         
         # Форматируем с лидирующими нулями до общего количества знаков
+        # Принудительно преобразуем в строку и добавляем префикс для сохранения формата
         format_string = f"{{:0{total_digits}d}}"
-        return format_string.format(tn_number)
+        formatted_tn = format_string.format(tn_number)
+        
+        # Добавляем префикс 'TN_' чтобы pandas не преобразовал в число
+        # Это гарантирует сохранение лидирующих нулей
+        return f"TN_{formatted_tn}"
     
     def _generate_fio(self):
         """Генерация уникального ФИО"""
@@ -668,12 +673,12 @@ class TestDataGenerator:
     
     def _generate_operational_income_data(self):
         """Генерация данных об операционном доходе"""
-        # Операционный доход на 31 июля 2025
-        income_july = np.random.randint(DATA_PARAMS["operational_income_july_min"], DATA_PARAMS["operational_income_july_max"] + 1)
+        # Операционный доход на 31 июля 2025 (финальный)
+        income_july = np.random.randint(DATA_PARAMS["operational_income_final_min"], DATA_PARAMS["operational_income_final_max"] + 1)
         
-        # Операционный доход на 20 августа 2025 (обязательно >= июльского)
+        # Операционный доход на 20 августа 2025 (текущий, обязательно >= финального)
         # Минимальный доход = доход на 31 июля, максимальный = заданный максимум
-        income_august = np.random.randint(income_july, DATA_PARAMS["operational_income_august_max"] + 1)
+        income_august = np.random.randint(income_july, DATA_PARAMS["operational_income_current_max"] + 1)
         
         # Прирост в процентах
         growth_percent = ((income_august - income_july) / income_july * 100) if income_july > 0 else 0
@@ -722,18 +727,18 @@ class TestDataGenerator:
                 tn = self._generate_tn()
                 effective_status = self._generate_effective_status()
                 
-                # Генерируем базовый доход (как бы на начало периода) и доход на 31 июля
-                # Базовый доход в диапазоне от 60% до 90% от минимального дохода июля
-                base_income_min = int(DATA_PARAMS["operational_income_july_min"] * 0.6)
-                base_income_max = int(DATA_PARAMS["operational_income_july_min"] * 0.9)
+                # Генерируем базовый доход (как бы на начало периода) и доход на 31 июля (финальный)
+                # Базовый доход в диапазоне от 60% до 90% от минимального финального дохода
+                base_income_min = int(DATA_PARAMS["operational_income_final_min"] * 0.6)
+                base_income_max = int(DATA_PARAMS["operational_income_final_min"] * 0.9)
                 base_income = np.random.randint(base_income_min, base_income_max + 1)
-                income_july = np.random.randint(DATA_PARAMS["operational_income_july_min"], DATA_PARAMS["operational_income_july_max"] + 1)
+                income_july = np.random.randint(DATA_PARAMS["operational_income_final_min"], DATA_PARAMS["operational_income_final_max"] + 1)
                 
-                # Вычисляем прирост от базового дохода до 31 июля
+                # Вычисляем прирост от базового дохода до 31 июля (финальный)
                 growth_percent_july = ((income_july - base_income) / base_income * 100) if base_income > 0 else 0
                 growth_amount_july = income_july - base_income
                 
-                # Создаем строку данных для 31 июля 2025 года
+                # Создаем строку данных для 31 июля 2025 года (финальный период)
                 row_july = {
                     'ТН 10': tn,
                     'ТБ': tb,
@@ -772,11 +777,11 @@ class TestDataGenerator:
             
             # Создаем данные для оставшихся сотрудников
             for emp in remaining_employees:
-                # Генерируем доход на 20 августа (>= дохода на 31 июля)
+                # Генерируем доход на 20 августа (текущий, >= дохода на 31 июля)
                 # Минимальный доход = доход на 31 июля, максимальный = заданный максимум
-                income_august = np.random.randint(emp['income_july'], DATA_PARAMS["operational_income_august_max"] + 1)
+                income_august = np.random.randint(emp['income_july'], DATA_PARAMS["operational_income_current_max"] + 1)
                 
-                # Вычисляем прирост
+                # Вычисляем прирост от финального до 31 июля до текущего на 20 августа
                 growth_percent = ((income_august - emp['income_july']) / emp['income_july'] * 100) if emp['income_july'] > 0 else 0
                 growth_amount = income_august - emp['income_july']
                 
@@ -1074,9 +1079,17 @@ class DataProcessor:
             
             # Создаем список уникальных значений ТН 10, ТБ, ГОСБ, ФИО
             # Объединяем все уникальные ТН из обоих файлов
+            # Очищаем ТН от префикса TN_ для корректного объединения
+            df1_clean = df1.copy()
+            df2_clean = df2.copy()
+            
+            # Очищаем префикс TN_ из ТН 10 в обоих DataFrame
+            df1_clean['ТН 10'] = df1_clean['ТН 10'].astype(str).str.replace('TN_', '')
+            df2_clean['ТН 10'] = df2_clean['ТН 10'].astype(str).str.replace('TN_', '')
+            
             all_tn = pd.concat([
-                df1[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates(),
-                df2[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates()
+                df1_clean[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates(),
+                df2_clean[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates()
             ]).drop_duplicates(subset=['ТН 10'], keep='last')
             
             self.logger.log_debug(LOG_MESSAGES["unique_tn_list_created"].format(len(all_tn)))
@@ -1090,9 +1103,9 @@ class DataProcessor:
                 gosb = row['ГОСБ']
                 fio = row['КМ']
                 
-                # Ищем данные в файле 1
-                data1_row = df1[df1['ТН 10'] == tn]
-                data2_row = df2[df2['ТН 10'] == tn]
+                # Ищем данные в очищенных DataFrame (без префикса TN_)
+                data1_row = df1_clean[df1_clean['ТН 10'] == tn]
+                data2_row = df2_clean[df2_clean['ТН 10'] == tn]
                 
                 # Получаем значения из файла 1
                 od_current = data1_row['2025, тыс. руб.'].iloc[0] if len(data1_row) > 0 else 0

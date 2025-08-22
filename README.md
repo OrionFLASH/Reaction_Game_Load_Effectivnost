@@ -245,10 +245,10 @@ HEAD_OFFICES = [gosb for gosb_list in BANK_STRUCTURE.values() for gosb in gosb_l
 DATA_PARAMS = {
     "total_employees": 1600,        # Общее количество сотрудников
     "effective_share": 0.80,        # Доля эффективных сотрудников (80%)
-    "operational_income_july_min": 500000,    # Минимальный операционный доход на 31 июля 2025 (тыс. руб.)
-    "operational_income_july_max": 20000000,   # Максимальный операционный доход на 31 июля 2025 (тыс. руб.)
-    "operational_income_august_min": 500000,  # Минимальный операционный доход на 20 августа 2025 (тыс. руб.)
-    "operational_income_august_max": 220000000, # Максимальный операционный доход на 20 августа 2025 (тыс. руб.)
+    "operational_income_final_min": 500000,    # Минимальный операционный доход на 31 июля 2025 (финальный период, тыс. руб.)
+    "operational_income_final_max": 20000000,   # Максимальный операционный доход на 31 июля 2025 (финальный период, тыс. руб.)
+    "operational_income_current_min": 500000,  # Минимальный операционный доход на 20 августа 2025 (текущий период, тыс. руб.)
+    "operational_income_current_max": 220000000, # Максимальный операционный доход на 20 августа 2025 (текущий период, тыс. руб.)
     "employee_overlap": 0.90,       # Доля одинаковых сотрудников в двух файлах (90%)
     "new_employees_share": 0.05,    # Доля новых сотрудников (5%)
     "removed_employees_share": 0.05 # Доля убранных сотрудников (5%)
@@ -752,8 +752,8 @@ python main.py
 DATA_PARAMS = {
     "total_employees": 2000,        # Увеличить количество сотрудников
     "effective_share": 0.85,        # Увеличить долю эффективных
-    "operational_income_july_min": 1000000,    # Изменить диапазоны дохода
-    "operational_income_july_max": 50000000,
+    "operational_income_final_min": 1000000,    # Изменить диапазоны дохода
+    "operational_income_final_max": 50000000,
     "employee_overlap": 0.95,       # Увеличить перекрытие
     "new_employees_share": 0.025,   # Уменьшить долю новых
     "removed_employees_share": 0.025 # Уменьшить долю убранных
