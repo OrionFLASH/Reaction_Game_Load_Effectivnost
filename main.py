@@ -157,8 +157,28 @@ COLUMN_FORMAT_GROUPS = {
 }
 
 # Специальные настройки для отдельных колонок (переопределяют групповые)
+# 
+# СПЕЦИАЛЬНЫЕ ТИПЫ ФОРМАТИРОВАНИЯ:
+# - 'padded_number': число с лидирующими нулями до заданного количества знаков
+#   - 'total_digits': общее количество знаков (например, 10)
+#   - 'leading_zeros': количество лидирующих нулей (обычно равно total_digits)
+#   - 'min_value': минимальное значение для генерации
+#   - 'max_value': максимальное значение для генерации
+#
+# ПРИМЕРЫ НАСТРОЙКИ ТН 10:
+# - 10 знаков, всегда заполнено нулями: {'total_digits': 10, 'leading_zeros': 10}
+# - 8 знаков, минимум 2 нуля: {'total_digits': 8, 'leading_zeros': 2}
+# - 12 знаков, без ограничений: {'total_digits': 12, 'leading_zeros': 0}
+#
 COLUMN_SPECIAL_FORMATS = {
-    'ТН 10': {'width': 12},      # 10 знаков + запас
+    'ТН 10': {
+        'width': 12,              # Ширина колонки
+        'format_type': 'padded_number',  # Специальный тип форматирования
+        'total_digits': 10,       # Общее количество знаков
+        'leading_zeros': 10,      # Количество лидирующих нулей (всегда заполняем до 10 знаков)
+        'min_value': 1,           # Минимальное значение
+        'max_value': 9999999999   # Максимальное значение (10 знаков)
+    },
     'ТБ': {'width': 20},         # Названия банков
     'ГОСБ': {'width': 30},       # Названия отделений
     'ФИО': {'width': 25},        # ФИО сотрудников
@@ -394,7 +414,8 @@ LOG_MESSAGES = {
     "panes_frozen": "Установлена фиксация панелей на уровне A2 (заголовки видны)",
     "columns_formatted": "Отформатированы {} колонок по содержимому",
     "group_formatting_applied": "Применено групповое форматирование: {} групп, {} колонок",
-    "special_formats_applied": "Специальные настройки применены к {} колонкам"
+    "special_formats_applied": "Специальные настройки применены к {} колонкам",
+    "padded_number_formatted": "Применено специальное форматирование к {} колонкам (padded_number)"
 }
 
 # =============================================================================
@@ -584,11 +605,20 @@ class TestDataGenerator:
         self.logger.log_debug(LOG_MESSAGES["tb_mapping_created"].format(len(self.tb_gosb_mapping)))
     
     def _generate_tn(self):
-        """Генерация табельного номера (10 знаков с лидирующими нулями)"""
-        # Генерируем случайное число от 1 до 9999999999
-        tn_number = np.random.randint(1, 10000000000)
-        # Форматируем в 10 знаков с ведущими нулями
-        return f"{tn_number:010d}"
+        """Генерация табельного номера с настраиваемым форматом"""
+        # Получаем настройки форматирования для ТН 10
+        tn_format = COLUMN_SPECIAL_FORMATS.get('ТН 10', {})
+        total_digits = tn_format.get('total_digits', 10)
+        leading_zeros = tn_format.get('leading_zeros', 10)
+        min_value = tn_format.get('min_value', 1)
+        max_value = tn_format.get('max_value', 9999999999)
+        
+        # Генерируем случайное число в заданном диапазоне
+        tn_number = np.random.randint(min_value, max_value + 1)
+        
+        # Форматируем с лидирующими нулями до общего количества знаков
+        format_string = f"{{:0{total_digits}d}}"
+        return format_string.format(tn_number)
     
     def _generate_fio(self):
         """Генерация уникального ФИО"""
@@ -1381,18 +1411,25 @@ class DataProcessor:
                             for row in range(2, max_row + 1):  # Начинаем со 2-й строки (после заголовка)
                                 cell = ws[f"{column_letter}{row}"]
                                 
-                                # Применяем числовой формат
-                                if format_config.get('format') == 'number' and 'number_format' in format_config:
-                                    cell.number_format = format_config['number_format']
-                                
-                                # Применяем выравнивание
-                                alignment = format_config.get('alignment', 'left')
-                                if alignment == 'center':
-                                    cell.alignment = Alignment(horizontal='center', vertical='center')
-                                elif alignment == 'right':
-                                    cell.alignment = Alignment(horizontal='right', vertical='center')
-                                elif alignment == 'left':
+                                # Применяем специальное форматирование для padded_number
+                                if format_config.get('format_type') == 'padded_number':
+                                    # Для чисел с лидирующими нулями устанавливаем текстовый формат
+                                    cell.number_format = '@'  # Текстовый формат Excel
+                                    # Применяем выравнивание по левому краю для лучшей читаемости
                                     cell.alignment = Alignment(horizontal='left', vertical='center')
+                                else:
+                                    # Применяем числовой формат
+                                    if format_config.get('format') == 'number' and 'number_format' in format_config:
+                                        cell.number_format = format_config['number_format']
+                                    
+                                    # Применяем выравнивание
+                                    alignment = format_config.get('alignment', 'left')
+                                    if alignment == 'center':
+                                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                                    elif alignment == 'right':
+                                        cell.alignment = Alignment(horizontal='right', vertical='center')
+                                    elif alignment == 'left':
+                                        cell.alignment = Alignment(horizontal='left', vertical='center')
                         else:
                             # Для колонок без настроек - форматируем по содержимому
                             max_width = 0
@@ -1418,8 +1455,21 @@ class DataProcessor:
                     for group_name, group_config in COLUMN_FORMAT_GROUPS.items():
                         formatted_columns += len(group_config['columns'])
                     
+                    # Логируем информацию о примененном форматировании
+                    formatted_columns = 0
+                    for group_name, group_config in COLUMN_FORMAT_GROUPS.items():
+                        formatted_columns += len(group_config['columns'])
+                    
+                    # Подсчитываем колонки со специальным форматированием
+                    special_formatted = 0
+                    for col_name, col_config in COLUMN_SPECIAL_FORMATS.items():
+                        if col_config.get('format_type') == 'padded_number':
+                            special_formatted += 1
+                    
                     self.logger.log_debug(LOG_MESSAGES["group_formatting_applied"].format(len(COLUMN_FORMAT_GROUPS), formatted_columns))
                     self.logger.log_debug(LOG_MESSAGES["special_formats_applied"].format(len(COLUMN_SPECIAL_FORMATS)))
+                    if special_formatted > 0:
+                        self.logger.log_debug(LOG_MESSAGES["padded_number_formatted"].format(special_formatted))
                 
                 self.logger.log_info(LOG_MESSAGES["file_saved"].format(filename))
                 self.logger.log_debug(LOG_MESSAGES["file_saved_debug_old"].format(file_path))
