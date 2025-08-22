@@ -14,6 +14,7 @@ import logging
 import pandas as pd
 import numpy as np
 from openpyxl import load_workbook
+from openpyxl.styles import Alignment
 from datetime import datetime
 from pathlib import Path
 import traceback
@@ -32,8 +33,8 @@ LOGS_FOLDER = "LOGS"        # Папка с логами
 
 # Настройки входных файлов (имя без расширения, расширение отдельно)
 INPUT_FILES = [
-    {"name": "data1_20250821_144750", "extension": ".xlsx"},
-    {"name": "data2_20250821_144750", "extension": ".xlsx"}
+    {"name": "data1_20250822_153515", "extension": ".xlsx"},
+    {"name": "data2_20250822_153515", "extension": ".xlsx"}
 ]
 
 # Настройки выходных файлов
@@ -53,6 +54,7 @@ LOG_FILE = {
 # "process" - обработка данных (основная работа)
 # "create-test" - создание тестовых данных
 PROGRAM_MODE = "process"
+#PROGRAM_MODE = "create-test"
 
 # Уровень логирования (INFO или DEBUG)
 LOG_LEVEL = "DEBUG"
@@ -72,6 +74,96 @@ DATA_PARAMS = {
 
 # Процентили для ранжирования (25%, 50%, 75%)
 PERCENTILES = [25, 50, 75]
+
+# Настройки форматирования колонок Excel
+# Универсальная система управления форматированием через параметры
+# 
+# ПАРАМЕТРЫ ФОРМАТИРОВАНИЯ:
+# - 'format': тип данных ('text', 'number', 'date')
+# - 'width': ширина колонки в символах
+# - 'alignment': выравнивание ('left', 'center', 'right')
+# - 'number_format': числовой формат (только для format='number')
+#
+# ЧИСЛОВЫЕ ФОРМАТЫ:
+# - '0' - целое число
+# - '0.0' - число с 1 знаком после запятой
+# - '#,##0.0' - число с разделителями разрядов и 1 знаком после запятой
+# - '#,##0' - целое число с разделителями разрядов
+# - '0.00%' - процент с 2 знаками после запятой
+#
+# ДАТЫ:
+# - 'DD.MM.YYYY' - день.месяц.год
+# - 'MM/DD/YYYY' - месяц/день/год
+# - 'YYYY-MM-DD' - год-месяц-день
+#
+# ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ:
+# - Финансовые данные: {'format': 'number', 'number_format': '#,##0.0', 'alignment': 'right'}
+# - Проценты: {'format': 'number', 'number_format': '0.0%', 'alignment': 'center'}
+# - Даты: {'format': 'date', 'number_format': 'DD.MM.YYYY', 'alignment': 'center'}
+# - Текст: {'format': 'text', 'alignment': 'left'}
+# Группы форматирования колонок
+COLUMN_FORMAT_GROUPS = {
+    # ТЕКСТОВЫЕ КОЛОНКИ (левое выравнивание)
+    'text_left': {
+        'columns': ['ТН 10', 'ТБ', 'ГОСБ', 'ФИО', 'вывод'],
+        'format': 'text',
+        'width': 20,
+        'alignment': 'left'
+    },
+    
+    # ЦЕНТРИРОВАННЫЕ КОЛОНКИ
+    'text_center': {
+        'columns': ['ЭФ.КМ', 'вып условий', 'КОД вывода'],
+        'format': 'text', 
+        'width': 12,
+        'alignment': 'center'
+    },
+    
+    # ФИНАНСОВЫЕ ДАННЫЕ (с разделителями разрядов, 1 знак после запятой)
+    'financial': {
+        'columns': ['ОД ТЕКУЩИЙ', 'ОД ПРОШЛЫЙ', 'прирост'],
+        'format': 'number',
+        'number_format': '#,##0.0',
+        'width': 18,
+        'alignment': 'right'
+    },
+    
+    # ПРОЦЕНТИЛИ (с разделителями разрядов, 1 знак после запятой)
+    'percentiles': {
+        'columns': ['СТРАНА 50', 'СТРАНА 75', 'СТРАНА 90', 'ТБ 25', 'ТБ 50', 'ТБ 75', 'ГОСБ 25', 'ГОСБ 50', 'ГОСБ 75'],
+        'format': 'number',
+        'number_format': '#,##0.0',
+        'width': 15,
+        'alignment': 'right'
+    },
+    
+    # РАНГИ (1 знак после запятой)
+    'ranks': {
+        'columns': ['ранг ОД BANK', 'ранг ОД TB', 'темп'],
+        'format': 'number',
+        'number_format': '0.0',
+        'width': 15,
+        'alignment': 'right'
+    },
+    
+    # ЦЕЛЫЕ ЧИСЛА
+    'integers': {
+        'columns': ['число страна', 'число ТБ', 'число подразделение'],
+        'format': 'number',
+        'number_format': '0',
+        'width': 15,
+        'alignment': 'right'
+    }
+}
+
+# Специальные настройки для отдельных колонок (переопределяют групповые)
+COLUMN_SPECIAL_FORMATS = {
+    'ТН 10': {'width': 12},      # 10 знаков + запас
+    'ТБ': {'width': 20},         # Названия банков
+    'ГОСБ': {'width': 30},       # Названия отделений
+    'ФИО': {'width': 25},        # ФИО сотрудников
+    'вывод': {'width': 40}       # Текстовые описания
+}
 
 # Территориальные банки (ТБ)
 TERRITORIAL_BANKS = [
@@ -297,9 +389,11 @@ LOG_MESSAGES = {
     "file_loading_time": "Время загрузки файлов: {}",
     "file_saving_time": "Время сохранения файлов: {}",
     "files_not_found": "Не найдены файлы {}.xlsx или {}.xlsx",
-    "autofilter_added": "Добавлен автофильтр на диапазон E2:{}",
-    "panes_frozen": "Установлена фиксация панелей на уровне E2",
-    "columns_formatted": "Отформатированы {} колонок по содержимому"
+    "autofilter_added": "Добавлен автофильтр на диапазон {}",
+    "panes_frozen": "Установлена фиксация панелей на уровне A2 (заголовки видны)",
+    "columns_formatted": "Отформатированы {} колонок по содержимому",
+    "group_formatting_applied": "Применено групповое форматирование: {} групп, {} колонок",
+    "special_formats_applied": "Специальные настройки применены к {} колонкам"
 }
 
 # =============================================================================
@@ -489,7 +583,7 @@ class TestDataGenerator:
         self.logger.log_debug(LOG_MESSAGES["tb_mapping_created"].format(len(self.tb_gosb_mapping)))
     
     def _generate_tn(self):
-        """Генерация табельного номера (10 знаков, справа значащие)"""
+        """Генерация табельного номера (10 знаков с лидирующими нулями)"""
         # Генерируем случайное число от 1 до 9999999999
         tn_number = np.random.randint(1, 10000000000)
         # Форматируем в 10 знаков с ведущими нулями
@@ -1236,39 +1330,95 @@ class DataProcessor:
                             result = chr(65 + remainder) + result
                         return result
                     
-                    # Устанавливаем автофильтр на диапазон E2:последняя_колонка_последняя_строка
-                    # E = 5-я колонка, поэтому последняя колонка = 5 + max_col - 1 = 4 + max_col
-                    last_col_letter = get_column_letter(4 + max_col)
-                    ws.auto_filter.ref = f"E2:{last_col_letter}{max_row}"
+                    # Устанавливаем автофильтр на диапазон A1:последняя_колонка_последняя_строка (заголовки + данные)
+                    # A1 = заголовки, A2:последняя_колонка_последняя_строка = данные
+                    last_col_letter = get_column_letter(max_col)
+                    ws.auto_filter.ref = f"A1:{last_col_letter}{max_row}"
                     
-                    # Фиксируем панели на уровне E2 (колонка E, строка 2)
-                    ws.freeze_panes = "E2"
+                    # Фиксируем панели на уровне A2 (колонка A, строка 2) - заголовки остаются видимыми
+                    ws.freeze_panes = "A2"
                     
-                    # Форматируем по содержимому для всех колонок (кроме индексов)
+                    # Функция для получения настроек форматирования колонки
+                    def get_column_format_config(column_name):
+                        """Получает настройки форматирования для колонки из групп или специальных настроек"""
+                        # Сначала проверяем специальные настройки (переопределяют групповые)
+                        if column_name in COLUMN_SPECIAL_FORMATS:
+                            special_config = COLUMN_SPECIAL_FORMATS[column_name].copy()
+                            
+                            # Ищем группу для этой колонки
+                            for group_name, group_config in COLUMN_FORMAT_GROUPS.items():
+                                if column_name in group_config['columns']:
+                                    # Объединяем групповые настройки со специальными
+                                    format_config = group_config.copy()
+                                    format_config.update(special_config)  # Специальные переопределяют групповые
+                                    return format_config
+                            
+                            # Если колонка не найдена в группах, возвращаем только специальные
+                            return special_config
+                        
+                        # Если нет специальных настроек, ищем в группах
+                        for group_name, group_config in COLUMN_FORMAT_GROUPS.items():
+                            if column_name in group_config['columns']:
+                                return group_config.copy()
+                        
+                        # Если колонка не найдена нигде, возвращаем None
+                        return None
+                    
+                    # Применяем форматирование колонок согласно групповой системе
                     for col in range(1, max_col + 1):
                         column_letter = get_column_letter(col)
-                        # Получаем максимальную ширину в колонке
-                        max_width = 0
-                        for row in range(1, max_row + 1):
-                            cell_value = ws[f"{column_letter}{row}"].value
-                            if cell_value is not None:
-                                # Примерная ширина для разных типов данных
-                                if isinstance(cell_value, (int, float)):
-                                    width = len(str(cell_value)) + 2
-                                else:
-                                    width = len(str(cell_value)) + 1
-                                max_width = max(max_width, width)
+                        column_name = processed_data.columns[col - 1]  # Получаем название колонки
                         
-                        # Устанавливаем ширину колонки с небольшим запасом
-                        ws.column_dimensions[column_letter].width = min(max_width + 2, 50)
+                        # Получаем настройки форматирования для колонки
+                        format_config = get_column_format_config(column_name)
+                        
+                        if format_config:
+                            # Устанавливаем ширину колонки
+                            ws.column_dimensions[column_letter].width = format_config.get('width', 15)
+                            
+                            # Применяем форматирование ко всем ячейкам в колонке (кроме заголовка)
+                            for row in range(2, max_row + 1):  # Начинаем со 2-й строки (после заголовка)
+                                cell = ws[f"{column_letter}{row}"]
+                                
+                                # Применяем числовой формат
+                                if format_config.get('format') == 'number' and 'number_format' in format_config:
+                                    cell.number_format = format_config['number_format']
+                                
+                                # Применяем выравнивание
+                                alignment = format_config.get('alignment', 'left')
+                                if alignment == 'center':
+                                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                                elif alignment == 'right':
+                                    cell.alignment = Alignment(horizontal='right', vertical='center')
+                                elif alignment == 'left':
+                                    cell.alignment = Alignment(horizontal='left', vertical='center')
+                        else:
+                            # Для колонок без настроек - форматируем по содержимому
+                            max_width = 0
+                            for row in range(1, max_row + 1):
+                                cell_value = ws[f"{column_letter}{row}"].value
+                                if cell_value is not None:
+                                    if isinstance(cell_value, (int, float)):
+                                        width = len(str(cell_value)) + 2
+                                    else:
+                                        width = len(str(cell_value)) + 1
+                                    max_width = max(max_width, width)
+                            
+                            ws.column_dimensions[column_letter].width = min(max_width + 2, 50)
                     
                     # Сохраняем изменения
                     wb.save(file_path)
                     wb.close()
                     
-                    self.logger.log_debug(LOG_MESSAGES["autofilter_added"].format(f"{last_col_letter}{max_row}"))
+                    self.logger.log_debug(LOG_MESSAGES["autofilter_added"].format(f"A1:{last_col_letter}{max_row}"))
                     self.logger.log_debug(LOG_MESSAGES["panes_frozen"])
-                    self.logger.log_debug(LOG_MESSAGES["columns_formatted"].format(max_col))
+                    # Логируем информацию о примененном форматировании
+                    formatted_columns = 0
+                    for group_name, group_config in COLUMN_FORMAT_GROUPS.items():
+                        formatted_columns += len(group_config['columns'])
+                    
+                    self.logger.log_debug(LOG_MESSAGES["group_formatting_applied"].format(len(COLUMN_FORMAT_GROUPS), formatted_columns))
+                    self.logger.log_debug(LOG_MESSAGES["special_formats_applied"].format(len(COLUMN_SPECIAL_FORMATS)))
                 
                 self.logger.log_info(LOG_MESSAGES["file_saved"].format(filename))
                 self.logger.log_debug(LOG_MESSAGES["file_saved_debug_old"].format(file_path))
