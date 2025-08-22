@@ -54,8 +54,8 @@ LOG_FILE = {
 # Режим работы программы
 # "process" - обработка данных (основная работа)
 # "create-test" - создание тестовых данных
-PROGRAM_MODE = "process"
-#PROGRAM_MODE = "create-test"
+#PROGRAM_MODE = "process"
+PROGRAM_MODE = "create-test"
 
 # Уровень логирования (INFO или DEBUG)
 LOG_LEVEL = "DEBUG"
@@ -621,8 +621,9 @@ class TestDataGenerator:
         # Принудительно создаем строку с лидирующими нулями
         formatted_tn = str(tn_number).zfill(total_digits)
         
-        # Возвращаем строку напрямую - pandas должен сохранить её как текст
-        return formatted_tn
+        # Добавляем префикс 'TN_' чтобы pandas НЕ преобразовал в число
+        # Это гарантирует сохранение лидирующих нулей
+        return f"TN_{formatted_tn}"
     
     def _generate_fio(self):
         """Генерация уникального ФИО"""
@@ -1078,9 +1079,17 @@ class DataProcessor:
             
             # Создаем список уникальных значений ТН 10, ТБ, ГОСБ, ФИО
             # Объединяем все уникальные ТН из обоих файлов
+            # Очищаем ТН от префикса TN_ для корректного объединения
+            df1_clean = df1.copy()
+            df2_clean = df2.copy()
+            
+            # Очищаем префикс TN_ из ТН 10 в обоих DataFrame
+            df1_clean['ТН 10'] = df1_clean['ТН 10'].astype(str).str.replace('TN_', '')
+            df2_clean['ТН 10'] = df2_clean['ТН 10'].astype(str).str.replace('TN_', '')
+            
             all_tn = pd.concat([
-                df1[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates(),
-                df2[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates()
+                df1_clean[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates(),
+                df2_clean[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates()
             ]).drop_duplicates(subset=['ТН 10'], keep='last')
             
             self.logger.log_debug(LOG_MESSAGES["unique_tn_list_created"].format(len(all_tn)))
@@ -1094,9 +1103,9 @@ class DataProcessor:
                 gosb = row['ГОСБ']
                 fio = row['КМ']
                 
-                # Ищем данные в DataFrame
-                data1_row = df1[df1['ТН 10'] == tn]
-                data2_row = df2[df2['ТН 10'] == tn]
+                # Ищем данные в очищенных DataFrame (без префикса TN_)
+                data1_row = df1_clean[df1_clean['ТН 10'] == tn]
+                data2_row = df2_clean[df2_clean['ТН 10'] == tn]
                 
                 # Получаем значения из файла 1
                 od_current = data1_row['2025, тыс. руб.'].iloc[0] if len(data1_row) > 0 else 0
@@ -1124,9 +1133,12 @@ class DataProcessor:
                 else:
                     temp_od = (od_current - od_previous) / abs(od_previous) * 100
                 
+                # Очищаем ТН от префикса TN_ для отображения в Excel
+                clean_tn = tn.replace('TN_', '') if isinstance(tn, str) and tn.startswith('TN_') else tn
+                
                 # Создаем строку результата
                 result_row = {
-                    'ТН 10': tn,
+                    'ТН 10': clean_tn,
                     'ТБ': tb,
                     'ГОСБ': gosb,
                     'ФИО': fio,
