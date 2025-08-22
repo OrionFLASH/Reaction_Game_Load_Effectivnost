@@ -39,8 +39,9 @@ INPUT_FILES = [
 
 # Настройки выходных файлов
 OUTPUT_FILES = [
-    {"name": "processed_data", "extension": ".csv", "suffix_format": "_YYYYMMDD-HHMMSS"},
     {"name": "processed_data", "extension": ".xlsx", "suffix_format": "_YYYYMMDD-HHMMSS"}
+    # ЗАКЛАДКА ДЛЯ БУДУЩЕГО CSV:
+    # {"name": "processed_data", "extension": ".csv", "suffix_format": "_YYYYMMDD-HHMMSS"}
 ]
 
 # Настройки лог-файла
@@ -105,7 +106,7 @@ PERCENTILES = [25, 50, 75]
 COLUMN_FORMAT_GROUPS = {
     # ТЕКСТОВЫЕ КОЛОНКИ (левое выравнивание)
     'text_left': {
-        'columns': ['ТН 10', 'ТБ', 'ГОСБ', 'ФИО', 'вывод'],
+        'columns': ['ТБ', 'ГОСБ', 'ФИО', 'вывод'],
         'format': 'text',
         'width': 20,
         'alignment': 'left'
@@ -617,13 +618,11 @@ class TestDataGenerator:
         tn_number = np.random.randint(min_value, max_value + 1)
         
         # Форматируем с лидирующими нулями до общего количества знаков
-        # Принудительно преобразуем в строку и добавляем префикс для сохранения формата
-        format_string = f"{{:0{total_digits}d}}"
-        formatted_tn = format_string.format(tn_number)
+        # Принудительно создаем строку с лидирующими нулями
+        formatted_tn = str(tn_number).zfill(total_digits)
         
-        # Добавляем префикс 'TN_' чтобы pandas не преобразовал в число
-        # Это гарантирует сохранение лидирующих нулей
-        return f"TN_{formatted_tn}"
+        # Возвращаем строку напрямую - pandas должен сохранить её как текст
+        return formatted_tn
     
     def _generate_fio(self):
         """Генерация уникального ФИО"""
@@ -1079,17 +1078,9 @@ class DataProcessor:
             
             # Создаем список уникальных значений ТН 10, ТБ, ГОСБ, ФИО
             # Объединяем все уникальные ТН из обоих файлов
-            # Очищаем ТН от префикса TN_ для корректного объединения
-            df1_clean = df1.copy()
-            df2_clean = df2.copy()
-            
-            # Очищаем префикс TN_ из ТН 10 в обоих DataFrame
-            df1_clean['ТН 10'] = df1_clean['ТН 10'].astype(str).str.replace('TN_', '')
-            df2_clean['ТН 10'] = df2_clean['ТН 10'].astype(str).str.replace('TN_', '')
-            
             all_tn = pd.concat([
-                df1_clean[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates(),
-                df2_clean[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates()
+                df1[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates(),
+                df2[['ТН 10', 'ТБ', 'ГОСБ', 'КМ']].drop_duplicates()
             ]).drop_duplicates(subset=['ТН 10'], keep='last')
             
             self.logger.log_debug(LOG_MESSAGES["unique_tn_list_created"].format(len(all_tn)))
@@ -1103,9 +1094,9 @@ class DataProcessor:
                 gosb = row['ГОСБ']
                 fio = row['КМ']
                 
-                # Ищем данные в очищенных DataFrame (без префикса TN_)
-                data1_row = df1_clean[df1_clean['ТН 10'] == tn]
-                data2_row = df2_clean[df2_clean['ТН 10'] == tn]
+                # Ищем данные в DataFrame
+                data1_row = df1[df1['ТН 10'] == tn]
+                data2_row = df2[df2['ТН 10'] == tn]
                 
                 # Получаем значения из файла 1
                 od_current = data1_row['2025, тыс. руб.'].iloc[0] if len(data1_row) > 0 else 0
@@ -1347,10 +1338,14 @@ class DataProcessor:
                 file_path = self.work_dir / OUTPUT_FOLDER / filename
                 
                 # Сохраняем файл в зависимости от формата
-                if output_config['extension'].lower() == '.csv':
-                    # Сохраняем CSV с разделителем ";"
-                    processed_data.to_csv(file_path, sep=';', index=False, encoding='utf-8')
-                elif output_config['extension'].lower() == '.xlsx':
+                # ЗАКЛАДКА ДЛЯ БУДУЩЕГО CSV:
+                # if output_config['extension'].lower() == '.csv':
+                #     # Сохраняем CSV с разделителем ";"
+                #     processed_data.to_csv(file_path, sep=';', index=False, encoding='utf-8')
+                # if output_config['extension'].lower() == '.xlsx':
+                # 
+                # Текущая реализация - только Excel файл
+                if output_config['extension'].lower() == '.xlsx':
                     # Сохраняем Excel с автофильтром и форматированием
                     processed_data.to_excel(file_path, index=False, engine='openpyxl')
                     
